@@ -447,6 +447,25 @@ lint:
     # Run shellcheck on all Bash scripts
     find . -iname "*.sh" -type f -exec shellcheck "{}" ';'
 
+# Build locale + deploy nella VM bootc
+dev-switch pull="never":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    tag="dev-$(date +%Y%m%d-%H%M%S)"
+    image="localhost/{{ image_name }}:${tag}"
+
+    sudo podman build \
+      --pull="{{ pull }}" \
+      --tag "${image}" \
+      --file Containerfile .
+
+    sudo bootc switch \
+      --transport containers-storage \
+      "${image}"
+
+    echo "Deployment pronto. Riavvia con: sudo systemctl reboot"
+
 # Runs shfmt on all Bash scripts
 format:
     #!/usr/bin/env bash
