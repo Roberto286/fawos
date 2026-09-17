@@ -27,3 +27,5 @@ dnf5 install -y tmux
 systemctl enable podman.socket
 useradd -m -G wheel -s /bin/bash t
 echo 't:t' | chpasswd
+
+dnf5 install -y hyprland
