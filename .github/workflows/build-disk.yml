@@ -10,6 +10,7 @@ on:
         default: false
         type: boolean
       platform:
+        description: 'Target platform'
         required: true
         type: choice
         options:
@@ -19,15 +20,15 @@ on:
     branches:
       - main
     paths:
-      - './disk_config/disk.toml'
-      - './disk_config/iso.toml'
-      - './.github/workflows/build-disk.yml'
+      - 'disk_config/disk.toml'
+      - 'disk_config/iso.toml'
+      - '.github/workflows/build-disk.yml'
 
 env:
   IMAGE_NAME: ${{ github.event.repository.name }}
   IMAGE_REGISTRY: 'ghcr.io/${{ github.repository_owner }}'
   DEFAULT_TAG: 'latest'
-  BIB_IMAGE: 'quay.io/centos-bootc/bootc-image-builder:latest
+  BIB_IMAGE: 'quay.io/centos-bootc/bootc-image-builder:latest'
 
 jobs:
   build:
@@ -56,11 +57,11 @@ jobs:
           USER_GID=$(id -g)
           DISK_TYPE=$(echo '${{ matrix.disk-type }}' | tr ' ' '-')
 
-          echo 'IMAGE_REGISTRY=${IMAGE_REGISTRY,,}' >> '$GITHUB_ENV'
-          echo 'IMAGE_NAME=${IMAGE_NAME,,}' >> '$GITHUB_ENV'
-          echo 'DISK_TYPE=${DISK_TYPE}' >> '$GITHUB_ENV'
-          echo 'USER_UID=${USER_UID}' >> '$GITHUB_ENV'
-          echo 'USER_GID=${USER_GID}' >> '$GITHUB_ENV'
+          echo "IMAGE_REGISTRY=${IMAGE_REGISTRY,,}" >> "$GITHUB_ENV"
+          echo "IMAGE_NAME=${IMAGE_NAME,,}" >> "$GITHUB_ENV"
+          echo "DISK_TYPE=${DISK_TYPE}" >> "$GITHUB_ENV"
+          echo "USER_UID=${USER_UID}" >> "$GITHUB_ENV"
+          echo "USER_GID=${USER_GID}" >> "$GITHUB_ENV"
 
       - name: Install container dependencies
         run: |
