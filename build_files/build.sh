@@ -13,9 +13,7 @@ cp -avf "/ctx/system_files"/. /
 # https://mirrors.rpmfusion.org/mirrorlist?path=free/fedora/updates/43/x86_64/repoview/index.html&protocol=https&redirect=1
 
 # this installs a package from fedora repos
-dnf5 update
 dnf5 install -y tmux
-dnf5 install -y hyprland
 
 # Use a COPR Example:
 #
