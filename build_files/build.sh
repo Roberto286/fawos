@@ -18,8 +18,8 @@ dnf5 install -y tmux
 #### Example for enabling a System Unit File
 
 systemctl enable podman.socket
-dnf5 -y copr enable solopasha/hyprland
-dnf5 -y install hyprland xdg-desktop-portal-hyprland waybar kitty swww
+dnf5 -y copr enable lionheartp/Hyprland
+dnf5 -y install Hyprland 
 
-dnf5 -y copr disable solopasha/hyprland
+dnf5 -y copr disable lionheartp/Hyprland
 
