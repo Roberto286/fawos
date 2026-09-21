@@ -1,10 +1,11 @@
 #!/bin/bash
 set -ouex pipefail
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
 # Copy the contents of system_files/ of the git repo to /
 cp -avf "/ctx/system_files"/. /
 
-source ./switch-kernel.sh
+source "${SCRIPT_DIR}/kernel.sh"
 
 ### Install packages
 
