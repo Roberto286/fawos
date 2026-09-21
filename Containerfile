@@ -4,7 +4,6 @@ FROM ghcr.io/ublue-os/brew:latest AS brew
 FROM scratch AS ctx
 COPY build_files /
 COPY system_files /system_files
-COPY build_files/switch-kernel.sh /tmp/switch-kernel.sh
 
 # Base Image
 FROM ghcr.io/ublue-os/base-main:latest
