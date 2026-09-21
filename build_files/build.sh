@@ -6,6 +6,7 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 cp -avf "/ctx/system_files"/. /
 
 source "${SCRIPT_DIR}/kernel.sh"
+source "${SCRIPT_DIR}/dms.sh"
 
 ### Install packages
 
