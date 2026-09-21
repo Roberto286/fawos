@@ -4,12 +4,16 @@ FROM ghcr.io/ublue-os/brew:latest AS brew
 FROM scratch AS ctx
 COPY build_files /
 COPY system_files /system_files
+COPY build_files/switch-kernel.sh /tmp/switch-kernel.sh
 
 # Base Image
 FROM ghcr.io/ublue-os/base-main:latest
 
 # Homebrew per immagini bootc
 COPY --from=brew /system_files /
+
+RUN KERNEL_VERSION=$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-cachyos | head -n 1) && \
+    echo "LABEL ostree.linux=\"${KERNEL_VERSION}\"" > /tmp/kernel-label.FROM
 
 RUN --mount=type=cache,dst=/var/cache \
     --mount=type=cache,dst=/var/log \
