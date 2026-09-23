@@ -1,7 +1,7 @@
 # --- DEV TOOLING: MISE + LAZYGIT + LAZYDOCKER ---
 
-# mise: binario dall'ultima release GitHub (pattern asset da verificare contro le release reali di jdx/mise)
-install_github_release "jdx/mise" 'mise-v[0-9.]+-linux-x64$' /usr/local/bin/mise
+# mise: installer ufficiale (gestisce piattaforma/architettura/estrazione autonomamente)
+curl -fsSL https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
 
 # lazygit / lazydocker: via COPR (stesso maintainer atim, pattern COPR standard)
 enable_copr "atim/lazygit"

@@ -28,7 +28,7 @@ Containerfile:
 1. `cp -avf "/ctx/system_files"/. /` — copies all of `system_files/` onto the
    image root (configs, users, skel dotfiles win over package defaults).
 2. `source lib/common.sh` — loads shared helpers (`install_packages`,
-   `enable_copr`/`disable_copr`, `enable_persistent_repo`, `install_github_release`).
+   `enable_copr`/`disable_copr`, `enable_persistent_repo`).
 3. Sources every `domains/*.sh` script in fixed order: `users kernel desktop
    terminal devtools containers apps gpu gaming power`. `users` always runs
    first (account/credential provisioning is foundational); `build.sh` itself
@@ -61,7 +61,7 @@ configured per output type by `disk_config/*.toml`.
 |---|---|
 | `Containerfile` | Image build entrypoint (multi-stage podman build) |
 | `build_files/` | Shell scripts run **inside** the build — `build.sh` (pure orchestrator) + `lib/` + `domains/` + `packages/` |
-| `build_files/lib/common.sh` | Shared helpers sourced by every domain script (`install_packages`, `enable_copr`/`disable_copr`, `enable_persistent_repo`, `install_github_release`) |
+| `build_files/lib/common.sh` | Shared helpers sourced by every domain script (`install_packages`, `enable_copr`/`disable_copr`, `enable_persistent_repo`) |
 | `build_files/domains/` | One script per functional domain (`users`, `kernel`, `desktop`, `terminal`, `devtools`, `containers`, `apps`, `gpu`, `gaming`, `power`) — sourced in this fixed order by `build.sh` |
 | `build_files/packages/*.txt` | Declarative package lists (one package per line, `#` comments) consumed by `install_packages` — one file per domain that needs one |
 | `system_files/etc/mise/config.toml` | Global `mise` tool version pins (node/python/go/bitwarden-cli) |
@@ -131,7 +131,7 @@ language toolchains in one command.
 not executed — no shebang, no strict mode of their own (they inherit
 `build.sh`'s `set -ouex pipefail`). Domain scripts call the shared helpers from
 `lib/common.sh` (`install_packages`, `enable_copr`/`disable_copr`,
-`enable_persistent_repo`, `install_github_release`) instead of hand-rolling
+`enable_persistent_repo`) instead of hand-rolling
 `dnf5`/COPR logic — follow this pattern for any new domain: declare packages in
 `packages/<domain>.txt` where a flat list suffices, keep repo-enable/disable
 logic (which varies per domain) directly in the domain script.

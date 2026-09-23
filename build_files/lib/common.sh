@@ -20,14 +20,3 @@ enable_persistent_repo() {
   local url="$1"
   dnf5 install -y "$url"
 }
-
-# Scarica l'ultimo binario da una GitHub release e lo installa in /usr/local/bin
-install_github_release() {
-  local repo="$1" asset_pattern="$2" dest="$3"
-  local url
-  url=$(curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" \
-    | jq -r --arg pat "$asset_pattern" '.assets[] | select(.name | test($pat)) | .browser_download_url' \
-    | head -n1)
-  curl -fsSL "$url" -o "$dest"
-  chmod +x "$dest"
-}
