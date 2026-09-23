@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "==> Aggiornamento immagine bootc..."
+sudo bootc upgrade
+
+echo "==> Aggiornamento Flatpak..."
+flatpak update -y
+
+echo "==> Aggiornamento tool mise (node/python/go/bitwarden-cli)..."
+mise upgrade
+
+echo "==> Fatto. Se bootc ha scaricato una nuova immagine, riavvia con: sudo systemctl reboot"
