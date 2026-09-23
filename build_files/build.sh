@@ -22,8 +22,4 @@ dnf5 install -y tmux
 
 systemctl enable podman.socket
 
-# Installazione di Hyprland da COPR
-dnf5 -y copr enable lionheartp/Hyprland
-dnf5 -y install Hyprland 
-dnf5 -y copr disable lionheartp/Hyprland
 
