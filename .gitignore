@@ -7,3 +7,4 @@ _build-*/**
 .tokensave/
 .docs/
 .worktrees/
+PROGRESS.md
