@@ -5,3 +5,4 @@ _build-*/**
 *_chunkah_*
 *_rpm-ostree_*
 .tokensave/
+.docs/
