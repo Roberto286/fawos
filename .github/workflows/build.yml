@@ -69,10 +69,16 @@ jobs:
       # This actually builds the container image
       - name: Build Image
         id: build-image
+        env:
+          ROBERTO_PASSWORD: ${{ secrets.ROBERTO_PASSWORD }}
         run: |
+          SECRET_TMPFILE=$(mktemp)
+          trap 'rm -f "${SECRET_TMPFILE}"' EXIT
+          printf '%s' "${ROBERTO_PASSWORD}" > "${SECRET_TMPFILE}"
           just build \
             ${IMAGE_NAME} \
-            ${DEFAULT_TAG}
+            ${DEFAULT_TAG} \
+            "${SECRET_TMPFILE}"
 
       # This is optional, this provides smaller delta updates
       - name: Rechunk with rpm-ostree

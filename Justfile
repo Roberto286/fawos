@@ -93,7 +93,7 @@ sudoif command *args:
 #
 
 # Build the image using the specified parameters
-build $target_image=image_name $tag=default_tag:
+build $target_image=image_name $tag=default_tag $secret_file="":
     #!/usr/bin/env bash
 
     set -euox pipefail
@@ -122,6 +122,10 @@ build $target_image=image_name $tag=default_tag:
     LABELS+=("--label" "org.opencontainers.image.vendor={{ repo_organization }}")
 
     # This actually builds the image!
+    if [ -n "${secret_file}" ]; then
+        BUILD_ARGS+=("--secret" "id=roberto_password,src=${secret_file}")
+    fi
+
     PODMAN_BUILD_ARGS=("${BUILD_ARGS[@]}" "${LABELS[@]}" --pull=newer --tag "${target_image}:${tag}" --file Containerfile)
 
     podman build "${PODMAN_BUILD_ARGS[@]}" .
