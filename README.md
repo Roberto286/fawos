@@ -2,6 +2,24 @@
 
 This repository is meant to be a template for building your own custom [bootc](https://github.com/bootc-dev/bootc) image. This template is the recommended way to make customizations to any image published by the Universal Blue Project.
 
+## What's in fawos
+
+Beyond the base ublue/Fedora Atomic template, this image ships pre-baked:
+- **CachyOS kernel** (performance-tuned, swapped in at build time)
+- **Hyprland + greetd + DMS** desktop environment
+- **Dev tooling**: `fish` default shell, `tmux`, `neovim`, a curated CLI suite
+  (ripgrep, fzf, bat, eza, zoxide, lazygit, lazydocker, distrobox, ...), and
+  `mise`-managed `node`/`python`/`go`/`bitwarden-cli` toolchains
+- **Gaming**: Steam (native RPM), Lutris, GameMode, MangoHud, AMD RDNA2
+  (RX 6700XT) Vulkan/OpenGL stack
+- **Apps**: Firefox and Bitwarden Desktop via Flatpak
+- **Power management**: `power-profiles-daemon` + `tuned-ppd`, defaults to
+  performance, auto-adjusts on laptop battery
+- **`fawos-update`**: one command on the deployed system updates the bootc
+  image, Flatpak apps, and mise toolchains together
+
+See `AGENTS.md` for the full architecture breakdown.
+
 # Community
 
 If you have questions about this template after following the instructions, try the following spaces:
@@ -206,7 +224,15 @@ just build $target_image $tag
 Arguments:
 - `$target_image`: The tag you want to apply to the image (default: `$image_name`).
 - `$tag`: The tag for the image (default: `$default_tag`).
+- `$secret_file`: (Optional) Path to a file containing the `roberto` account password, passed to `podman build --secret`.
 
+`just build` also accepts an optional third argument, a path to a file
+containing the `roberto` account password, passed to `podman build --secret`.
+This is used by CI only (via the `ROBERTO_PASSWORD` repository secret,
+mirroring the existing `SIGNING_SECRET`/cosign pattern) — local builds omit it
+and simply don't set a login password for that build (see `AGENTS.md` for why
+this is safe: bootc's `/etc` merge preserves an already-provisioned machine's
+real password across local rebuilds).
 ### Rechunking
 We can flatten the layers of container images to make sure there isn't a single huge layer when your image gets published.
 This does not make your image faster to download, just provides better resumability.
