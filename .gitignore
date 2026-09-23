@@ -6,3 +6,4 @@ _build-*/**
 *_rpm-ostree_*
 .tokensave/
 .docs/
+.worktrees/
