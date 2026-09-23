@@ -1,0 +1,5 @@
+mesa-dri-drivers
+mesa-vulkan-drivers
+mesa-va-drivers
+vulkan-loader
+vulkan-tools
