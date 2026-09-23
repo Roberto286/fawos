@@ -1,0 +1,5 @@
+[tools]
+node = "lts"
+python = "latest"
+go = "latest"
+"npm:@bitwarden/cli" = "latest"
