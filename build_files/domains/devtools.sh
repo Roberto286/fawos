@@ -1,12 +1,13 @@
 # --- DEV TOOLING: MISE + LAZYGIT + LAZYDOCKER ---
 
-# mise: installer ufficiale (gestisce piattaforma/architettura/estrazione autonomamente).
-# Retry: unica curl "grezza" a singolo host del build (dnf5/COPR altrove hanno già
-# retry/failover su più mirror integrato) — sopravvive a blip DNS transitori dello
-# stack di rete slirp4netns/pasta usato dai build podman rootless.
+# mise: installer ufficiale, ospitato sul CDN di GitHub invece del dominio corto
+# mise.run (problemi DNS intermittenti riscontrati su rete self-hosted) — stesso
+# script, alternativa confermata dal maintainer di mise stesso:
+# https://github.com/jdx/mise/discussions/6970
 mise_installed=0
 for _mise_attempt in 1 2 3; do
-  curl -fsSL https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh && { mise_installed=1; break; }
+  curl --retry 3 -fsSL https://github.com/jdx/mise/releases/latest/download/install.sh \
+    | MISE_INSTALL_PATH=/usr/local/bin/mise sh && { mise_installed=1; break; }
   echo "AVVISO: installazione mise fallita (tentativo ${_mise_attempt}/3), riprovo tra 3s..." >&2
   sleep 3
 done
