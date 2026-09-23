@@ -1,0 +1,15 @@
+fish
+tmux
+neovim
+fzf
+ripgrep
+bat
+eza
+zoxide
+jq
+gh
+fd-find
+btop
+git-delta
+tealdeer
+dust
