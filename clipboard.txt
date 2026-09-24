@@ -1,39 +1,19 @@
 + for domain in users kernel desktop terminal devtools containers apps gpu gaming power
-+ source /ctx/domains/devtools.sh
-++ mise_installed=0
-++ for _mise_attempt in 1 2 3
-++ curl --retry 3 -fsSL https://github.com/jdx/mise/releases/latest/download/install.sh
-++ MISE_INSTALL_PATH=/usr/local/bin/mise
-++ sh
-mise: installing mise...
-######################################################################## 100.0%
-mkdir: cannot create directory '/usr/local': File exists
-++ echo 'AVVISO: installazione mise fallita (tentativo 1/3), riprovo tra 3s...'
-AVVISO: installazione mise fallita (tentativo 1/3), riprovo tra 3s...
-++ sleep 3
-++ for _mise_attempt in 1 2 3
-++ curl --retry 3 -fsSL https://github.com/jdx/mise/releases/latest/download/install.sh
-++ MISE_INSTALL_PATH=/usr/local/bin/mise
-++ sh
-mise: installing mise...
-######################################################################## 100.0%
-mkdir: cannot create directory '/usr/local': File exists
-++ echo 'AVVISO: installazione mise fallita (tentativo 2/3), riprovo tra 3s...'
-AVVISO: installazione mise fallita (tentativo 2/3), riprovo tra 3s...
-++ sleep 3
-++ for _mise_attempt in 1 2 3
-++ curl --retry 3 -fsSL https://github.com/jdx/mise/releases/latest/download/install.sh
-++ MISE_INSTALL_PATH=/usr/local/bin/mise
-++ sh
-mise: installing mise...
-######################################################################## 100.0%
-mkdir: cannot create directory '/usr/local': File exists
-++ echo 'AVVISO: installazione mise fallita (tentativo 3/3), riprovo tra 3s...'
-AVVISO: installazione mise fallita (tentativo 3/3), riprovo tra 3s...
-++ sleep 3
-++ '[' 0 -eq 1 ']'
-++ echo 'ERRORE: installazione mise fallita dopo 3 tentativi'
-ERRORE: installazione mise fallita dopo 3 tentativi
-++ exit 1
++ source /ctx/domains/power.sh
+++ dnf5 install -y power-profiles-daemon tuned tuned-ppd
+Updating and loading repositories:
+Repositories loaded.
+Failed to resolve the transaction:
+Package "tuned-2.28.0-1.fc44.noarch" is already installed.
+Package "tuned-ppd-2.28.0-1.fc44.noarch" is already installed.
+Problem: problem with installed package
+  - installed package tuned-ppd-2.28.0-1.fc44.noarch conflicts with ppd-service provided by power-profiles-daemon-0.30-3.fc44.x86_64 from fedora
+  - package power-profiles-daemon-0.30-3.fc44.x86_64 from fedora conflicts with ppd-service provided by tuned-ppd-2.27.0-1.fc44.noarch from fedora
+  - package power-profiles-daemon-0.30-3.fc44.x86_64 from fedora conflicts with ppd-service provided by tuned-ppd-2.28.0-1.fc44.noarch from updates
+  - package power-profiles-daemon-0.30-3.fc44.x86_64 from fedora conflicts with ppd-service provided by tuned-ppd-2.28.0-1.fc44.noarch from updates-archive
+  - conflicting requests
+You can try to add to command line:
+  --allowerasing to allow removing of installed packages to resolve problems
+  --skip-broken to skip uninstallable packages
 Error: building at STEP "RUN --mount=type=bind,from=ctx,source=/,target=/ctx --mount=type=cache,dst=/var/cache --mount=type=cache,dst=/var/log --mount=type=tmpfs,dst=/tmp --mount=type=secret,id=roberto_password,required=false /ctx/build.sh": while running runtime: exit status 1
 error: recipe `build` failed with exit code 1
