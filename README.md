@@ -13,7 +13,8 @@ Beyond the base ublue/Fedora Atomic template, this image ships pre-baked:
 - **Gaming**: Steam (native RPM), Lutris, GameMode, MangoHud, AMD RDNA2
   (RX 6700XT) Vulkan/OpenGL stack
 - **Apps**: Firefox and Bitwarden Desktop via Flatpak
-- **Power management**: `power-profiles-daemon` + `tuned-ppd`, defaults to
+- **Power management**: `tuned` + `tuned-ppd` (PPD-compatible, replaces
+  `power-profiles-daemon` per Fedora's own default), defaults to
   performance, auto-adjusts on laptop battery
 - **`fawos-update`**: one command on the deployed system updates the bootc
   image, Flatpak apps, and mise toolchains together

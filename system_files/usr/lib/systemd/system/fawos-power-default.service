@@ -1,11 +1,11 @@
 [Unit]
 Description=Set default power profile to performance
-After=power-profiles-daemon.service
-Requires=power-profiles-daemon.service
+After=tuned.service
+Requires=tuned.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/powerprofilesctl set performance
+ExecStart=/usr/bin/tuned-adm profile throughput-performance
 
 [Install]
 WantedBy=multi-user.target
