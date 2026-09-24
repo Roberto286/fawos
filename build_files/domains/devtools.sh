@@ -6,10 +6,13 @@
 # mise.run (problemi DNS intermittenti riscontrati su rete self-hosted) — stesso
 # script, alternativa confermata dal maintainer di mise stesso:
 # https://github.com/jdx/mise/discussions/6970
+# Installato in /usr/bin (non /usr/local/bin: su Fedora Atomic/Silverblue
+# /usr/local è un symlink verso /var/usrlocal, che a build-time non esiste
+# ancora — mkdir fallisce con "File exists" sul symlink stesso).
 mise_installed=0
 for _mise_attempt in 1 2 3; do
   curl --retry 3 -fsSL https://github.com/jdx/mise/releases/latest/download/install.sh \
-    | MISE_INSTALL_PATH=/usr/local/bin/mise sh && { mise_installed=1; break; }
+    | MISE_INSTALL_PATH=/usr/bin/mise sh && { mise_installed=1; break; }
   echo "AVVISO: installazione mise fallita (tentativo ${_mise_attempt}/3), riprovo tra 3s..." >&2
   sleep 3
 done

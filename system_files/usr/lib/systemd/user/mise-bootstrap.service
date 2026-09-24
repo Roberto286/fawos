@@ -3,7 +3,7 @@ Description=Install pinned mise tool versions for this user
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/mise install
+ExecStart=/usr/bin/mise install
 
 [Install]
 WantedBy=default.target
