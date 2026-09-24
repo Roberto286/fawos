@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # --- CONFIGURAZIONE KERNEL CACHYOS ---
 
 # 1. Abilita il repository COPR di CachyOS

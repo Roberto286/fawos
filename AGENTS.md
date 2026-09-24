@@ -128,8 +128,11 @@ language toolchains in one command.
 - `set -xeuo pipefail` — xtrace-first variant (`rechunk`, `ostree-rechunk`, `_run-vm`, `spawn-vm`).
 
 `build_files/lib/common.sh` and every `build_files/domains/*.sh` are **sourced**,
-not executed — no shebang, no strict mode of their own (they inherit
-`build.sh`'s `set -ouex pipefail`). Domain scripts call the shared helpers from
+not executed — they carry a `#!/bin/bash` shebang for editor/tooling
+recognition and manual standalone testing, but no strict mode of their own
+(they inherit `build.sh`'s `set -ouex pipefail` when sourced; the shebang is
+treated as an ordinary comment in that case). Domain scripts call the shared
+helpers from
 `lib/common.sh` (`install_packages`, `enable_copr`/`disable_copr`,
 `enable_persistent_repo`) instead of hand-rolling
 `dnf5`/COPR logic — follow this pattern for any new domain: declare packages in

@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Installa i pacchetti elencati in un file (un pkg per riga, '#' per commenti, righe vuote ignorate)
 install_packages() {
   local file="$1"

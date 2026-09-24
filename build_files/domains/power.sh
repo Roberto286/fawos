@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # --- POWER MANAGEMENT: power-profiles-daemon + tuned-ppd (desktop + laptop) ---
 dnf5 install -y power-profiles-daemon tuned tuned-ppd
 systemctl enable power-profiles-daemon.service

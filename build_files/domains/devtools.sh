@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # --- DEV TOOLING: MISE + LAZYGIT + LAZYDOCKER ---
 
 # mise: installer ufficiale, ospitato sul CDN di GitHub invece del dominio corto

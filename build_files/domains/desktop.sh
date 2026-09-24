@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # --- DESKTOP: GREETD + DMS + HYPRLAND ---
 
 dnf5 -y copr enable avengemedia/danklinux

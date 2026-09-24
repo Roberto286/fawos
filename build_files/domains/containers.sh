@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # --- CONTAINER TOOLING: PODMAN + DISTROBOX ---
 install_packages "${SCRIPT_DIR}/packages/containers.txt"
 

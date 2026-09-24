@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # --- PROVISIONING UTENTE ---
 
 # Materializza l'account dichiarato in sysusers.d (idempotente)
