@@ -2,8 +2,9 @@
 
 # --- CONFIGURAZIONE KERNEL CACHYOS ---
 
-# 1. Abilita il repository COPR di CachyOS
-dnf5 -y copr enable bieszczaders/kernel-cachyos
+# 1. Abilita il repository COPR di CachyOS (via helper condiviso: retry su
+#    DNS intermittenti, stesso problema già visto per mise)
+enable_copr "bieszczaders/kernel-cachyos"
 
 # 2. Forza dracut a usare il filesystem del container anziché /tmp (evita os error 18)
 mkdir -p /var/tmp/dracut-build
@@ -31,7 +32,7 @@ rm -rf /var/tmp/dracut-build
 unset TMPDIR
 
 # 6. Disabilita il repository COPR per pulizia dei metadati
-dnf5 -y copr disable bieszczaders/kernel-cachyos
+disable_copr "bieszczaders/kernel-cachyos"
 
 # --- FINE CONFIGURAZIONE KERNEL ---
 
