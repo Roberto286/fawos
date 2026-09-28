@@ -126,7 +126,7 @@ build $target_image=image_name $tag=default_tag $secret_file="":
         BUILD_ARGS+=("--secret" "id=roberto_password,src=${secret_file}")
     fi
 
-    PODMAN_BUILD_ARGS=("${BUILD_ARGS[@]}" "${LABELS[@]}" --pull=newer --tag "${target_image}:${tag}" --file Containerfile)
+    PODMAN_BUILD_ARGS=("${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"}" "${LABELS[@]}" --pull=newer --tag "${target_image}:${tag}" --file Containerfile)
 
     podman build "${PODMAN_BUILD_ARGS[@]}" .
 
