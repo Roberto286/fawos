@@ -9,7 +9,10 @@ choose() {
   mv "$CONF.tmp" "$CONF"
 }
 
-[ "${1:-}" = "--choose" ] && choose
+if [ "${1:-}" = "--choose" ]; then
+  shift
+  choose
+fi
 [ -s "$CONF" ] || choose
 
-exec "$(cat "$CONF")" "${@:2}"
+exec "$(cat "$CONF")" "$@"
