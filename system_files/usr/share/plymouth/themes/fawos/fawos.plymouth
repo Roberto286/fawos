@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=fawos
+Description=fawos boot theme
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/fawos
+ScriptFile=/usr/share/plymouth/themes/fawos/fawos.script

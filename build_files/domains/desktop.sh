@@ -44,4 +44,13 @@ enable_copr "scottames/ghostty"
 dnf5 -y install ghostty
 disable_copr "scottames/ghostty"
 
+# --- BRANDING: PLYMOUTH ---
+# Stesso workaround TMPDIR di kernel.sh: dracut non deve scrivere in /tmp
+# nell'ambiente di build.
+mkdir -p /var/tmp/dracut-build
+export TMPDIR=/var/tmp/dracut-build
+plymouth-set-default-theme -R fawos
+rm -rf /var/tmp/dracut-build
+unset TMPDIR
+
 # --- FINE DESKTOP ---
