@@ -24,6 +24,12 @@ enable_copr "atim/lazydocker"
 dnf5 install -y lazygit lazydocker
 disable_copr "atim/lazygit"
 disable_copr "atim/lazydocker"
+# fawos-agent: lazy picker tra CLI agent AI (omp/claude/opencode/codex/pi).
+# Backend mise esatto per ciascun agente varia (npm:/aqua:/github release/
+# installer proprietario) — installati on-demand dallo stub stesso al primo
+# uso reale, non pre-installati qui: nessuno dei cinque è garantito
+# risolvibile da un unico pattern mise, e pre-installarli tutti e cinque a
+# build-time gonfierebbe l'immagine per strumenti che potresti non usare mai.
 
 mkdir -p /usr/lib/systemd/user/default.target.wants
 ln -sf /usr/lib/systemd/user/mise-bootstrap.service \

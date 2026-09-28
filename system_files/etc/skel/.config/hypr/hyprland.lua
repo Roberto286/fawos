@@ -248,6 +248,7 @@ hl.bind(mainMod .. " + J", hl.dsp.layout("togglesplit"))    -- dwindle only
 hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd("grim -g \"$(slurp)\" - | satty --filename -"))
 hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd("wf-recorder -g \"$(slurp)\""))
 hl.bind(mainMod .. " + CTRL + N", hl.dsp.exec_cmd("hyprsunset -t 4000"))
+hl.bind(mainMod .. " + SHIFT + CTRL + A", hl.dsp.exec_cmd(terminal .. " fawos-agent"))
 
 -- Move focus with mainMod + arrow keys
 hl.bind(mainMod .. " + left",  hl.dsp.focus({ direction = "left" }))

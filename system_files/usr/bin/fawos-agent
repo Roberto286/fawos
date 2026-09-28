@@ -1,0 +1,15 @@
+#!/bin/bash
+set -euo pipefail
+CONF="$HOME/.config/fawos/agent"
+AGENTS=(omp claude opencode codex pi)
+
+choose() {
+  mkdir -p "$(dirname "$CONF")"
+  printf '%s\n' "${AGENTS[@]}" | fzf --prompt="Agente di default: " > "$CONF.tmp"
+  mv "$CONF.tmp" "$CONF"
+}
+
+[ "${1:-}" = "--choose" ] && choose
+[ -s "$CONF" ] || choose
+
+exec "$(cat "$CONF")" "${@:2}"
