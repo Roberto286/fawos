@@ -1,19 +1,10 @@
-+ for domain in users kernel desktop terminal devtools containers apps gpu gaming power
-+ source /ctx/domains/power.sh
-++ dnf5 install -y power-profiles-daemon tuned tuned-ppd
-Updating and loading repositories:
-Repositories loaded.
-Failed to resolve the transaction:
-Package "tuned-2.28.0-1.fc44.noarch" is already installed.
-Package "tuned-ppd-2.28.0-1.fc44.noarch" is already installed.
-Problem: problem with installed package
-  - installed package tuned-ppd-2.28.0-1.fc44.noarch conflicts with ppd-service provided by power-profiles-daemon-0.30-3.fc44.x86_64 from fedora
-  - package power-profiles-daemon-0.30-3.fc44.x86_64 from fedora conflicts with ppd-service provided by tuned-ppd-2.27.0-1.fc44.noarch from fedora
-  - package power-profiles-daemon-0.30-3.fc44.x86_64 from fedora conflicts with ppd-service provided by tuned-ppd-2.28.0-1.fc44.noarch from updates
-  - package power-profiles-daemon-0.30-3.fc44.x86_64 from fedora conflicts with ppd-service provided by tuned-ppd-2.28.0-1.fc44.noarch from updates-archive
-  - conflicting requests
-You can try to add to command line:
-  --allowerasing to allow removing of installed packages to resolve problems
-  --skip-broken to skip uninstallable packages
+https://copr.fedorainfracloud.org/api_ ???% |   0.0   B/s |   0.0   B |  00m15s
+>>> Curl error (6): Could not resolve hostname for https://copr.fedorainfracloud.org/api_3/rpmrepo/bieszczaders/kernel-cachyos/fedora-44/ [Could not resolve host: copr.fedorainfracloud.org] - https://copr.fedorainfracloud.org/api_3/rpmrepo/bieszczaders/kernel-cachyos/fedora-44/
+>>> Curl error (6): Could not resolve hostname for https://copr.fedorainfracloud.org/api_3/rpmrepo/bieszczaders/kernel-cachyos/fedora-44/ [Could not resolve host: copr.fedorainfracloud.org] - https://copr.fedorainfracloud.org/api_3/rpmrepo/bieszczaders/kernel-cachyos/fedora-44/
+>>> Curl error (6): Could not resolve hostname for https://copr.fedorainfracloud.org/api_3/rpmrepo/bieszczaders/kernel-cachyos/fedora-44/ [Could not resolve host: copr.fedorainfracloud.org] - https://copr.fedorainfracloud.org/api_3/rpmrepo/bieszczaders/kernel-cachyos/fedora-44/
+>>> Curl error (6): Could not resolve hostname for https://copr.fedorainfracloud.org/api_3/rpmrepo/bieszczaders/kernel-cachyos/fedora-44/ [Could not resolve host: copr.fedorainfracloud.org] - https://copr.fedorainfracloud.org/api_3/rpmrepo/bieszczaders/kernel-cachyos/fedora-44/
+>>> Curl error (6): Could not resolve hostname for https://copr.fedorainfracloud.org/api_3/rpmrepo/bieszczaders/kernel-cachyos/fedora-44/ [Could not resolve host: copr.fedorainfracloud.org]
+Failed to download files
+ Librepo error: Curl error (6): Could not resolve hostname for https://copr.fedorainfracloud.org/api_3/rpmrepo/bieszczaders/kernel-cachyos/fedora-44/ [Could not resolve host: copr.fedorainfracloud.org]
 Error: building at STEP "RUN --mount=type=bind,from=ctx,source=/,target=/ctx --mount=type=cache,dst=/var/cache --mount=type=cache,dst=/var/log --mount=type=tmpfs,dst=/tmp --mount=type=secret,id=roberto_password,required=false /ctx/build.sh": while running runtime: exit status 1
 error: recipe `build` failed with exit code 1
