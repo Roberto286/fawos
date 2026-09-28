@@ -7,4 +7,9 @@ enable_persistent_repo "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-n
 
 install_packages "${SCRIPT_DIR}/packages/gaming.txt"
 
+# Moonlight: non in repo Fedora, Flatpak ha bug attivi su Fedora specificamente
+enable_copr "atim/moonlight"
+dnf5 install -y moonlight-qt
+disable_copr "atim/moonlight"
+
 # --- FINE GAMING ---
