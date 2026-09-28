@@ -13,3 +13,4 @@ btop
 git-delta
 tealdeer
 dust
+fastfetch
