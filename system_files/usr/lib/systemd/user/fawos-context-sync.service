@@ -1,0 +1,9 @@
+[Unit]
+Description=Sync fawos AGENTS.md context files into the user home
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/fawos-context-sync
+
+[Install]
+WantedBy=default.target

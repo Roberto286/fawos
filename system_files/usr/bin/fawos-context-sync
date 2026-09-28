@@ -1,0 +1,9 @@
+#!/bin/bash
+set -euo pipefail
+SRC=/usr/share/fawos/context/home
+while IFS= read -r -d '' f; do
+  rel="${f#"$SRC"/}"
+  dest="$HOME/$rel"
+  mkdir -p "$(dirname "$dest")"
+  cp -f "$f" "$dest"
+done < <(find "$SRC" -name AGENTS.md -print0)
