@@ -1,0 +1,4 @@
+dolphin
+grim
+slurp
+wf-recorder
