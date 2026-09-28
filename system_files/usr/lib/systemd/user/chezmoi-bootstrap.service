@@ -1,0 +1,9 @@
+[Unit]
+Description=Apply chezmoi-managed dotfiles for this user
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/chezmoi init --apply https://github.com/Roberto286/dotfiles.git
+
+[Install]
+WantedBy=default.target
