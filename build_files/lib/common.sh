@@ -13,22 +13,22 @@ install_packages() {
   dnf5 install -y "${pkgs[@]}"
 }
 
-# COPR effimere: enable -> install -> disable nello stesso dominio
-# enable_copr ritenta 3 volte (rete self-hosted con DNS intermittenti verso
-# host esterni, stesso problema già visto e risolto per l'installer mise) —
-# copr enable stesso richiede rete verso copr.fedorainfracloud.org per
-# risolvere l'URL del repo, non è un'operazione locale.
-enable_copr() {
-  local copr="$1"
+# Esegue un comando dnf5 con retry su fallimento di rete (3 tentativi, backoff
+# 3s) — rete self-hosted con DNS intermittenti verso host esterni (COPR,
+# GitHub, ...), stesso problema già visto e risolto per l'installer mise.
+dnf5_retry() {
   local attempt
   for attempt in 1 2 3; do
-    dnf5 -y copr enable "$copr" && return 0
-    echo "AVVISO: enable_copr ${copr} fallito (tentativo ${attempt}/3), riprovo tra 3s..." >&2
+    dnf5 "$@" && return 0
+    echo "AVVISO: dnf5 $* fallito (tentativo ${attempt}/3), riprovo tra 3s..." >&2
     sleep 3
   done
-  echo "ERRORE: enable_copr ${copr} fallito dopo 3 tentativi" >&2
+  echo "ERRORE: dnf5 $* fallito dopo 3 tentativi" >&2
   exit 1
 }
+
+# COPR effimere: enable -> install -> disable nello stesso dominio
+enable_copr() { dnf5_retry -y copr enable "$1"; }
 disable_copr() { dnf5 -y copr disable "$1"; }
 
 # Repo persistenti (es. RPM Fusion) — restano abilitate nell'immagine finale
