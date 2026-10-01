@@ -6,4 +6,3 @@ org.mozilla.Thunderbird
 com.bitwarden.desktop
 org.libreoffice.LibreOffice
 com.github.tchx84.Flatseal
-com.valvesoftware.Steam

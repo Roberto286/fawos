@@ -56,17 +56,6 @@ vulkan-loader
 vulkan-tools
 corectrl
 
-## ---- gaming ----
-lutris
-gamemode
-gamemode.i686
-mangohud
-mangohud.i686
-mesa-dri-drivers.i686
-mesa-vulkan-drivers.i686
-vulkan-loader.i686
-moonlight-qt
-
 ## ---- media ----
 cascadia-mono-nf-fonts
 gstreamer1-plugins-good

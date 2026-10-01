@@ -7,4 +7,3 @@ mineiro/satty
 scottames/ghostty
 atim/lazygit
 atim/lazydocker
-ferdiu/moonlight
