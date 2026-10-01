@@ -10,4 +10,12 @@ flatpak update -y
 echo "==> Aggiornamento tool mise (node/python/go/bitwarden-cli)..."
 mise upgrade
 
+if command -v brew >/dev/null 2>&1; then
+  echo "==> Aggiornamento Homebrew e formule..."
+  brew update
+  brew upgrade
+else
+  echo "==> Homebrew non ancora inizializzato (brew-setup.service), skip."
+fi
+
 echo "==> Fatto. Se bootc ha scaricato una nuova immagine, riavvia con: sudo systemctl reboot"
