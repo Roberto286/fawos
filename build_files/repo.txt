@@ -1,0 +1,7 @@
+# COPR persistenti: abilitate a inizio build e mai disabilitate (vedi
+# build.sh, Fase 1). Un nome COPR per riga.
+# RPM Fusion (free/nonfree) non è elencata qui: usa un meccanismo diverso
+# (installazione dell'rpm di release, non "copr enable") gestito a parte in
+# build.sh tramite enable_persistent_repo.
+
+avengemedia/danklinux

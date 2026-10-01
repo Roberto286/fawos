@@ -1,0 +1,10 @@
+# COPR effimere: abilitate a inizio build, disabilitate dopo l'installazione
+# dei pacchetti (vedi build.sh, Fase 1 / Fase 3). Un nome COPR per riga.
+
+bieszczaders/kernel-cachyos
+lionheartp/Hyprland
+mineiro/satty
+scottames/ghostty
+atim/lazygit
+atim/lazydocker
+ferdiu/moonlight

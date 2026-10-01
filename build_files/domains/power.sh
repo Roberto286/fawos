@@ -8,8 +8,8 @@
 # tuned-ppd espone la stessa interfaccia D-Bus (net.hadess.PowerProfiles) di
 # power-profiles-daemon, restando un drop-in replacement trasparente per
 # strumenti/desktop che si aspettano l'API PPD.
-dnf5 install -y tuned tuned-ppd
-systemctl enable tuned-ppd.service
+# tuned, tuned-ppd già installati da build.sh (Fase 2); tuned-ppd.service
+# abilitato da build.sh (Fase 5) via services.txt
 
 mkdir -p /usr/lib/systemd/system/multi-user.target.wants
 ln -sf /usr/lib/systemd/system/fawos-power-default.service \

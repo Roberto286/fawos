@@ -1,0 +1,7 @@
+# Unit systemd abilitate con `systemctl enable` (vedi build.sh, Fase 5).
+# Un nome unit per riga, '#' per commenti, righe vuote ignorate.
+
+podman.socket
+tuned-ppd.service
+firewalld.service
+libvirtd.service

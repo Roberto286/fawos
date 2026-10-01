@@ -1,9 +1,8 @@
 #!/bin/bash
 
 # --- CONTAINER TOOLING: PODMAN + DISTROBOX ---
-install_packages "${SCRIPT_DIR}/packages/containers.txt"
-
-systemctl enable podman.socket
+# podman-compose, distrobox già installati da build.sh (Fase 2);
+# podman.socket abilitato da build.sh (Fase 5) via services.txt
 
 mkdir -p /usr/lib/systemd/user/default.target.wants
 ln -sf /usr/lib/systemd/user/podman.socket \

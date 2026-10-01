@@ -1,0 +1,9 @@
+# App ID Flathub installate in un'unica passata (vedi build.sh, Fase 4).
+# Un app ID per riga, '#' per commenti, righe vuote ignorate.
+
+org.mozilla.firefox
+org.mozilla.Thunderbird
+com.bitwarden.desktop
+org.libreoffice.LibreOffice
+com.github.tchx84.Flatseal
+com.valvesoftware.Steam

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # --- DOTFILES: CHEZMOI ---
-dnf5 install -y chezmoi
+# chezmoi già installato da build.sh (Fase 2)
 
 mkdir -p /usr/lib/systemd/user/default.target.wants
 ln -sf /usr/lib/systemd/user/chezmoi-bootstrap.service \

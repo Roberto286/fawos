@@ -1,10 +1,9 @@
 #!/bin/bash
 
 # --- DESKTOP: GREETD + DMS + HYPRLAND ---
-
-dnf5 -y copr enable avengemedia/danklinux
-
-dnf5 -y install dms dms-greeter greetd
+# Pacchetti (dms, dms-greeter, greetd, Hyprland, satty, ghostty, ...) già
+# installati da build.sh (Fase 2) via packages.txt; avengemedia/danklinux
+# già abilitata e lasciata attiva da repo.txt. Qui solo config/symlink.
 
 mkdir -p /etc/greetd
 
@@ -24,25 +23,6 @@ ln -s /usr/lib/systemd/system/greetd.service /etc/systemd/system/display-manager
 # Abilita l'avvio automatico di DMS a livello utente
 mkdir -p /usr/lib/systemd/user/hyprland.service.wants
 ln -s /usr/lib/systemd/user/dms.service /usr/lib/systemd/user/hyprland.service.wants/dms.service
-
-install_packages "${SCRIPT_DIR}/packages/desktop.txt"
-
-# Installazione di Hyprland + resto dell'ecosistema hyprwm da COPR
-# (consolidata qui da build.sh; hyprlauncher/hypridle/hyprlock/hyprsunset/
-# gpu-screen-recorder confermati presenti nella stessa COPR)
-enable_copr "lionheartp/Hyprland"
-dnf5 -y install Hyprland hyprlauncher hypridle hyprlock hyprsunset gpu-screen-recorder hyprland-guiutils
-disable_copr "lionheartp/Hyprland"
-
-# satty: annotazione screenshot, COPR upstream-maintained (mineiro/satty-rpms)
-enable_copr "mineiro/satty"
-dnf5 -y install satty
-disable_copr "mineiro/satty"
-
-# ghostty: terminale di default, COPR raccomandata da ghostty.org stesso
-enable_copr "scottames/ghostty"
-dnf5 -y install ghostty
-disable_copr "scottames/ghostty"
 
 # --- BRANDING: PLYMOUTH ---
 # Stesso workaround TMPDIR di kernel.sh: dracut non deve scrivere in /tmp

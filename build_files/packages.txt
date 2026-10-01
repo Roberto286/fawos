@@ -1,0 +1,95 @@
+# Pacchetti dnf5 installati in un'unica passata (vedi build.sh, Fase 2).
+# Un pacchetto per riga, '#' per commenti, righe vuote ignorate.
+# Pacchetti da COPR richiedono il relativo repo in repo.txt o temp_repo.txt.
+
+## ---- terminal ----
+fish
+tmux
+neovim
+fzf
+ripgrep
+bat
+eza
+zoxide
+jq
+gh
+fd-find
+btop
+git-delta
+tealdeer
+dust
+fastfetch
+
+## ---- desktop ----
+dolphin
+grim
+slurp
+wf-recorder
+plymouth-plugin-script
+dms
+dms-greeter
+greetd
+Hyprland
+hyprlauncher
+hypridle
+hyprlock
+hyprsunset
+gpu-screen-recorder
+hyprland-guiutils
+satty
+ghostty
+
+## ---- devtools ----
+lazygit
+lazydocker
+chezmoi
+
+## ---- containers ----
+podman-compose
+distrobox
+
+## ---- gpu ----
+mesa-dri-drivers
+mesa-vulkan-drivers
+mesa-va-drivers
+vulkan-loader
+vulkan-tools
+corectrl
+
+## ---- gaming ----
+lutris
+gamemode
+gamemode.i686
+mangohud
+mangohud.i686
+mesa-dri-drivers.i686
+mesa-vulkan-drivers.i686
+vulkan-loader.i686
+moonlight-qt
+
+## ---- media ----
+cascadia-mono-nf-fonts
+gstreamer1-plugins-good
+gstreamer1-plugins-bad-free
+gstreamer1-plugins-ugly-free
+gstreamer1-libav
+ffmpeg
+
+## ---- virtualization ----
+qemu-kvm
+libvirt
+virt-manager
+virt-viewer
+
+## ---- power ----
+tuned
+tuned-ppd
+
+## ---- apps ----
+qalculate-gtk
+ark
+okular
+gwenview
+
+## ---- system ----
+flatpak

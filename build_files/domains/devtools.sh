@@ -18,12 +18,8 @@ for _mise_attempt in 1 2 3; do
 done
 [ "$mise_installed" -eq 1 ] || { echo "ERRORE: installazione mise fallita dopo 3 tentativi" >&2; exit 1; }
 
-# lazygit / lazydocker: via COPR (stesso maintainer atim, pattern COPR standard)
-enable_copr "atim/lazygit"
-enable_copr "atim/lazydocker"
-dnf5 install -y lazygit lazydocker
-disable_copr "atim/lazygit"
-disable_copr "atim/lazydocker"
+# lazygit / lazydocker: già installati da build.sh (Fase 2) via packages.txt
+# (COPR atim/lazygit, atim/lazydocker in temp_repo.txt)
 # fawos-agent: lazy picker tra CLI agent AI (omp/claude/opencode/codex/pi).
 # Backend mise esatto per ciascun agente varia (npm:/aqua:/github release/
 # installer proprietario) — installati on-demand dallo stub stesso al primo

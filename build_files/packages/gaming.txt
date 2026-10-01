@@ -1,8 +1,0 @@
-lutris
-gamemode
-gamemode.i686
-mangohud
-mangohud.i686
-mesa-dri-drivers.i686
-mesa-vulkan-drivers.i686
-vulkan-loader.i686
