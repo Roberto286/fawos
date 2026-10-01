@@ -31,7 +31,7 @@ install_packages "${SCRIPT_DIR}/packages/desktop.txt"
 # (consolidata qui da build.sh; hyprlauncher/hypridle/hyprlock/hyprsunset/
 # gpu-screen-recorder confermati presenti nella stessa COPR)
 enable_copr "lionheartp/Hyprland"
-dnf5 -y install Hyprland hyprlauncher hypridle hyprlock hyprsunset gpu-screen-recorder
+dnf5 -y install Hyprland hyprlauncher hypridle hyprlock hyprsunset gpu-screen-recorder hyprland-guiutils
 disable_copr "lionheartp/Hyprland"
 
 # satty: annotazione screenshot, COPR upstream-maintained (mineiro/satty-rpms)
@@ -49,7 +49,7 @@ disable_copr "scottames/ghostty"
 # nell'ambiente di build.
 mkdir -p /var/tmp/dracut-build
 export TMPDIR=/var/tmp/dracut-build
-plymouth-set-default-theme -R fawos
+plymouth-set-default-theme fawos
 rm -rf /var/tmp/dracut-build
 unset TMPDIR
 

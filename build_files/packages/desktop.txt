@@ -2,3 +2,4 @@ dolphin
 grim
 slurp
 wf-recorder
+plymouth-plugin-script

@@ -1,5 +1,3 @@
-steam
-steam-devices
 lutris
 gamemode
 gamemode.i686
