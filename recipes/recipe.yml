@@ -3,10 +3,10 @@
 # image will be published to ghcr.io/<user>/<name>
 name: fawos
 # description will be included in the image's metadata
-description: This is my personal OS image.
+description: Finally A Working OS! 
 
 # the base image to build on top of (FROM) and the version tag to use
-base-image: ghcr.io/ublue-os/silverblue-main
+base-image: ghcr.io/blue-build/base-images/fedora-base
 image-version: latest # You can pin to a specific version of Fedora as well
 
 # module configuration, executed in order
@@ -19,12 +19,34 @@ modules:
 
   - type: dnf
     repos:
+      cleanup: true
       copr:
-        - atim/starship
+        enable:
+          - avengemedia/danklinux
+          - scottames/ghostty
+          - yalter/niri
     install:
       packages:
-        - micro
-        - starship
+        # Core Session & Compositor
+        - niri
+        - xwayland
+        - sddm
+        - wayland-utils
+        - xdg-desktop-portal-gnome
+        
+        # DMS & Utility Shell
+        - dms
+        - dms-greeter
+        - wl-clipboard
+        - brightnessctl
+        
+        # Terminal & DevTools
+        - ghostty
+        - neovim       
+        - fish
+        - git
+        - ripgrep     
+        - fd-find    
     remove:
       packages:
         # example: removing firefox (in favor of the flatpak)
@@ -40,6 +62,8 @@ modules:
         install: # system flatpaks we want all users to have and not remove
           - org.mozilla.firefox
           - org.gnome.Loupe
+          - com.bitwarden.desktop
+          - org.libreoffice.LibreOffice
       - scope: user # Also add Flathub user repo, but no user packages
 
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
