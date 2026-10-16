@@ -30,7 +30,7 @@ modules:
           - scottames/ghostty
           - yalter/niri
           - alebastr/greetd
-          - jdx/mise
+          - jdxcode/mise
     install:
       packages:
         # Core Session & Compositor
