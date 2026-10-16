@@ -25,20 +25,19 @@ modules:
           - avengemedia/danklinux
           - scottames/ghostty
           - yalter/niri
+          - alebastr/greetd
     install:
       packages:
         # Core Session & Compositor
         - niri
-        - xwayland
         - sddm
         - wayland-utils
         - xdg-desktop-portal-gnome
         
         # DMS & Utility Shell
         - dms
-        - dms-greeter
-        - wl-clipboard
         - brightnessctl
+        - greetd
         
         # Terminal & DevTools
         - ghostty
@@ -67,3 +66,9 @@ modules:
       - scope: user # Also add Flathub user repo, but no user packages
 
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
+
+  - type: systemd
+    system:
+      enabled:
+        - greetd
+

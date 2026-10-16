@@ -1,0 +1,4 @@
+include "dms/colors.kdl"
+include "dms/layout.kdl"
+
+spawn-at-startup "dms" "run"
