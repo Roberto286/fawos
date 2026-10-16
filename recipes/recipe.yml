@@ -30,12 +30,12 @@ modules:
       packages:
         # Core Session & Compositor
         - niri
-        - sddm
         - wayland-utils
         - xdg-desktop-portal-gnome
         
         # DMS & Utility Shell
         - dms
+        - dms-greeter
         - brightnessctl
         - greetd
         

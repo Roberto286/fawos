@@ -1,0 +1,13 @@
+hotkey-overlay {
+    skip-at-startup
+}
+
+environment {
+    DMS_RUN_GREETER "1"
+}
+
+layout {
+    background-color "#000000"
+}
+
+spawn-at-startup "sh" "-c" "qs -p /usr/share/quickshell/dms; niri msg action quit --skip-confirmation"
