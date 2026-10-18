@@ -31,7 +31,6 @@ modules:
           - alebastr/greetd
           - jdxcode/mise
     install:
-      # OPZIONI DI RISOLUZIONE DIPENDENZE (Accettate nativamente dal modulo dnf di BlueBuild)
       allow-erasing: true
       install-weak-deps: false
       packages:
@@ -39,6 +38,8 @@ modules:
         - niri
         - wayland-utils
         - xdg-desktop-portal-gnome
+        - power-profiles-daemon
+        - fprintd
         
         # DMS & Utility Shell
         - dms

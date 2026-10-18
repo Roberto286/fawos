@@ -30,6 +30,25 @@ To rebase an existing atomic Fedora installation to the latest build:
 
 The `latest` tag tracks the latest fawos build. The recipe also uses the base image's `latest` tag, so new builds automatically follow Fedora major releases. If the CachyOS COPR does not support the new Fedora release yet, the build fails instead of falling back to the Fedora kernel. Existing installations remain on the last successfully published image until a new build succeeds.
 
+## Updates
+
+Run the following command from your normal desktop user account, **without prefixing it with `sudo`**:
+
+```bash
+fawos-update
+```
+
+The command updates:
+
+- The system image with `sudo bootc upgrade`, including the kernel, RPM packages, and the mise/chezmoi executables. This downloads the latest published fawos image; it does not rebuild it or run DNF on the host.
+- Flatpak applications and runtimes in both the default system installation and the current user's installation. Only the system installation uses sudo.
+- Dotfiles through the existing `chezmoi-update.service` user service, preserving its configured conflict policy. The current `replace` policy overwrites local changes to managed dotfiles.
+- Tools in the user's global mise configuration with `mise upgrade --global --yes`. Version ranges and exact pins are respected; project configurations and project lockfiles are not changed, regardless of the current directory.
+
+Failed steps are listed at the end and the command exits with status 1; other steps are still attempted. Interrupting the command stops it. Successful updates are not rolled back when another step fails.
+
+There is no automatic reboot. Reboot manually to activate any staged system image; Flatpak, dotfile, and mise updates apply separately. Automatic update timers from the base image remain enabled. Firmware flashing and updates inside Distrobox or other containers are not performed.
+
 ## Kernel
 
 fawos replaces the stock Fedora kernel with `kernel-cachyos` from the [CachyOS Fedora COPR](https://github.com/CachyOS/copr-linux-cachyos). The replacement happens during the image build, followed by initramfs regeneration. Kernel updates arrive through new fawos images; no host-side kernel override is required.

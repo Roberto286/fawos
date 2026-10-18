@@ -1,0 +1,45 @@
+#!/usr/bin/bash
+set -uo pipefail
+
+if (( $# != 0 )); then
+    printf 'Usage: fawos-update\n' >&2
+    exit 2
+fi
+
+if (( EUID == 0 )); then
+    printf 'Run fawos-update as your regular user, without sudo.\n' >&2
+    exit 2
+fi
+
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+failed=()
+
+update() {
+    local label=$1 result
+    shift
+    printf '\n== %s ==\n' "$label"
+    "$@"
+    result=$?
+    case "$result" in
+        0) ;;
+        130|143) exit "$result" ;;
+        *) failed+=("$label") ;;
+    esac
+}
+
+update 'System image (including kernel and RPM packages)' sudo bootc upgrade
+update 'System Flatpaks' sudo flatpak update --system --noninteractive
+update 'User Flatpaks' flatpak update --user --noninteractive
+update 'Dotfiles' systemctl --user start --wait chezmoi-update.service
+update 'Global mise tools' mise upgrade --global --yes
+
+if (( ${#failed[@]} != 0 )); then
+    printf '\nUpdate steps failed:\n' >&2
+    printf '  - %s\n' "${failed[@]}" >&2
+    printf 'Other updates may have succeeded; any staged system image still requires a reboot.\n' >&2
+    exit 1
+fi
+
+printf '\nAll update steps completed. Reboot to activate any staged system image.\n'
