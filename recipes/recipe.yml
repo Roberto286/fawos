@@ -1,5 +1,4 @@
----
-# yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
+# yaml-language-server: $schema=https://blue-build.org
 # image will be published to ghcr.io/<user>/<name>
 name: fawos
 # description will be included in the image's metadata
@@ -21,19 +20,6 @@ modules:
       - source: system
         destination: / # copies files/system/* (* means everything inside it) into your image's root folder /
 
-  - type: rpm-ostree
-    repos:
-      - https://copr.fedorainfracloud.org/coprs/bieszczaders/kernel-cachyos/repo/fedora-%OS_VERSION%/bieszczaders-kernel-cachyos-fedora-%OS_VERSION%.repo
-    install:
-      - libcap-ng
-      - libcap-ng-devel
-      - procps-ng
-      - procps-ng-devel
-
-  - type: script
-    snippets:
-      - "rpm-ostree override remove kernel kernel-core kernel-modules kernel-modules-core kernel-modules-extra --install kernel-cachyos"
-
   - type: dnf
     repos:
       cleanup: true
@@ -45,6 +31,9 @@ modules:
           - alebastr/greetd
           - jdxcode/mise
     install:
+      # OPZIONI DI RISOLUZIONE DIPENDENZE (Accettate nativamente dal modulo dnf di BlueBuild)
+      allow-erasing: true
+      install-weak-deps: false
       packages:
         # Core Session & Compositor
         - niri
@@ -65,13 +54,45 @@ modules:
         - ripgrep     
         - fd-find
         - mise
+
     remove:
       packages:
-        # example: removing firefox (in favor of the flatpak)
-        # "firefox" is the main package, "firefox-langpacks" is a dependency
         - firefox
-        - firefox-langpacks # also remove firefox dependency (not required for all packages, this is a special case)
+        - firefox-langpacks
         - alacritty
+
+  # Replace only the stock Fedora kernel; fail if CachyOS is unavailable.
+  - type: dnf
+    env:
+      DRACUT_NO_XATTR: "1"
+    repos:
+      cleanup: true
+      copr:
+        enable:
+          - bieszczaders/kernel-cachyos
+    remove:
+      auto-remove: false
+      packages:
+        - kernel
+        - kernel-core
+        - kernel-modules
+        - kernel-modules-core
+        - kernel-modules-extra
+    install:
+      install-weak-deps: false
+      packages:
+        - kernel-cachyos
+
+  - type: script
+    snippets:
+      # Persist the policy without reloading the build host's SELinux policy.
+      - setsebool -N -P domain_kernel_load_modules on
+      # The RPM also writes this redundant symbol file outside the bootc kernel tree.
+      - rm -f "/boot/symvers-$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}' kernel-cachyos-core).zst"
+
+  - type: initramfs
+    env:
+      DRACUT_NO_XATTR: "1"
 
   - type: default-flatpaks
     configurations:
@@ -79,7 +100,8 @@ modules:
         scope: system
         # If no repo information is specified, Flathub will be used by default
         install: # system flatpaks we want all users to have and not remove
-          - org.mozilla.firefox
+          - org.chromium.Chromium
+          - org.chromium.Chromium.Codecs
           - org.gnome.Loupe
           - com.bitwarden.desktop
           - org.libreoffice.LibreOffice
@@ -91,4 +113,3 @@ modules:
     system:
       enabled:
         - greetd
-

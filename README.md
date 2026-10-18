@@ -28,7 +28,20 @@ To rebase an existing atomic Fedora installation to the latest build:
   systemctl reboot
   ```
 
-The `latest` tag will automatically point to the latest build. That build will still always use the Fedora version specified in `recipe.yml`, so you won't get accidentally updated to the next major version.
+The `latest` tag tracks the latest fawos build. The recipe also uses the base image's `latest` tag, so new builds automatically follow Fedora major releases. If the CachyOS COPR does not support the new Fedora release yet, the build fails instead of falling back to the Fedora kernel. Existing installations remain on the last successfully published image until a new build succeeds.
+
+## Kernel
+
+fawos replaces the stock Fedora kernel with `kernel-cachyos` from the [CachyOS Fedora COPR](https://github.com/CachyOS/copr-linux-cachyos). The replacement happens during the image build, followed by initramfs regeneration. Kernel updates arrive through new fawos images; no host-side kernel override is required.
+
+Kernel installation and initramfs regeneration set `DRACUT_NO_XATTR=1` to avoid unsupported extended-attribute copies in container builds. This does not disable SELinux.
+
+- The standard CachyOS kernel requires an **x86-64-v3** CPU.
+- **Secure Boot:** this recipe does not sign the replacement kernel. Before booting the image, either sign the kernel with your own trusted key or disable Secure Boot. Disabling Secure Boot reduces protection against boot-time tampering. The `signing` module configures container signature verification, not kernel signing.
+- NVIDIA and other out-of-tree modules must be built for the exact CachyOS kernel version; Fedora-kernel modules cannot be reused.
+- The image persistently enables the SELinux boolean `domain_kernel_load_modules`, as required by the CachyOS Fedora port, without disabling SELinux.
+
+Before deploying a new kernel, test booting the image in a VM and retain a known-good deployment for rollback. After boot, `uname -r` should report a CachyOS kernel.
 
 ## ISO
 
