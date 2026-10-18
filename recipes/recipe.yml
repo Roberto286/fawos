@@ -55,6 +55,7 @@ modules:
         - ripgrep     
         - fd-find
         - mise
+        - gh
 
     remove:
       packages:
