@@ -14,6 +14,7 @@ concurrency:
   # only run one build at a time
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
   cancel-in-progress: true
+
 jobs:
   bluebuild:
     name: Build Custom Image
@@ -40,7 +41,8 @@ jobs:
 
           # enabled by default, disable if your image is small and you want faster builds
           maximize_build_space: true
-build-iso:
+
+  build-iso:
     name: Generate Installer ISO
     runs-on: ubuntu-latest
     needs: bluebuild
