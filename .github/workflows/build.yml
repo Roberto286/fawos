@@ -40,3 +40,42 @@ jobs:
 
           # enabled by default, disable if your image is small and you want faster builds
           maximize_build_space: true
+build-iso:
+    name: Generate Installer ISO
+    runs-on: ubuntu-latest
+    needs: bluebuild
+    if: github.event_name != 'pull_request' # Genera l'ISO solo sui push e build programmate, non sulle Pull Request
+    permissions:
+      contents: read
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix:
+        recipe:
+          - recipe.yml
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Build ISO using Container Installer
+        uses: jasonn3/build-container-installer@v1
+        id: build
+        with:
+          # Ricava automaticamente il nome dell'immagine basandosi sul nome del tuo repository GitHub
+          image-name: ${{ github.event.repository.name }}
+          image-repo: ghcr.io/${{ github.repository_owner }}
+          image-tag: latest
+          
+          # Inserisci qui la versione della base (es. 41 per Fedora 41 Atomic / Silverblue)
+          version: 41 
+          variant: 'fedora'
+
+      - name: Upload ISO as a GitHub Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.repository.name }}-iso
+          path: |
+            ${{ steps.build.outputs.iso-path }}
+            ${{ steps.build.outputs.iso-sha256 }}
+          if-no-files-found: error
+          retention-days: 7
