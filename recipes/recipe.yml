@@ -47,6 +47,7 @@ modules:
         - dms-greeter
         - brightnessctl
         - greetd
+        - fastfetch
         
         # Terminal & DevTools
         - ghostty
