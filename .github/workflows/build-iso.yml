@@ -1,0 +1,59 @@
+# Builds the installer ISO from the latest published image, once a month.
+# The daily image build lives in build.yml; this only consumes what it publishes.
+name: build-iso
+on:
+  schedule:
+    # 1st of every month, 10 minutes after the daily image build starts,
+    # so the ISO usually captures the same day's fresh image.
+    - cron: "10 6 1 * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build-iso:
+    name: Generate Installer ISO
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # GHCR requires lowercase repository paths, and the daily image is built
+      # from `image-version: latest`, so the installer's Lorax version has to be
+      # read from the published image instead of being hardcoded.
+      - name: Resolve image repo and Fedora version
+        id: meta
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq skopeo
+          repo="${GITHUB_REPOSITORY,,}"
+          echo "image_repo=ghcr.io/${repo%/*}" >> "$GITHUB_OUTPUT"
+          version=$(skopeo inspect "docker://ghcr.io/${repo}:latest" \
+            | jq -r '.Labels["org.opencontainers.image.version"] | split(".")[0]')
+          if ! [[ "$version" =~ ^[0-9]+$ ]]; then
+            echo "::error::Could not read Fedora version from image label (got '$version')"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build ISO using Container Installer
+        uses: jasonn3/build-container-installer@v1.5.0
+        id: build
+        with:
+          # resolved from ghcr.io/<owner>/<repo>:latest
+          image_repo: ${{ steps.meta.outputs.image_repo }}
+          image_name: ${{ github.event.repository.name }}
+          image_tag: latest
+          # Lorax/Anaconda version of the installer, auto-detected
+          version: ${{ steps.meta.outputs.version }}
+          variant: fedora
+
+      - name: Upload ISO as a GitHub Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.repository.name }}-iso
+          path: |
+            ${{ steps.build.outputs.iso_path }}/${{ steps.build.outputs.iso_name }}
+            ${{ steps.build.outputs.iso_path }}/${{ steps.build.outputs.iso_name }}-CHECKSUM
+          if-no-files-found: error
+          retention-days: 7
