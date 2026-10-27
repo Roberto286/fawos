@@ -57,7 +57,7 @@ jobs:
           - recipe.yml
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Build ISO using Container Installer
         uses: jasonn3/build-container-installer@v1
