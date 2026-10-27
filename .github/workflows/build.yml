@@ -45,3 +45,29 @@ jobs:
 
           # enabled by default, disable if your image is small and you want faster builds
           maximize_build_space: true
+
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    # Cheap, secret-free gate for PRs (including Dependabot's, where the image
+    # build above is skipped); the daily build on main does the real build.
+    if: github.event_name != 'schedule'
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate YAML files
+        run: |
+          python3 -m pip install --quiet pyyaml
+          python3 -c '
+          import yaml
+          files = (".github/workflows/build.yml",
+                   ".github/workflows/build-iso.yml",
+                   "recipes/recipe.yml")
+          for f in files:
+              yaml.safe_load(open(f))
+          print("all valid")'
+
+      - name: Run tests
+        run: python3 -m unittest discover -s tests
