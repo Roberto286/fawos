@@ -19,6 +19,10 @@ jobs:
   bluebuild:
     name: Build Custom Image
     runs-on: ubuntu-latest
+    # Dependabot runs get secrets withheld by GitHub (both PR and branch-push
+    # events), so signing would always fail. Skip instead; Dependabot bumps are
+    # verified by the next scheduled/push build on main.
+    if: github.actor != 'dependabot[bot]'
     permissions:
       contents: read
       packages: write
