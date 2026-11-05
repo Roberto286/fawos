@@ -30,6 +30,7 @@ modules:
           - yalter/niri
           - alebastr/greetd
           - jdxcode/mise
+          - duxlabs/dux-repo
     install:
       allow-erasing: true
       install-weak-deps: false
@@ -48,7 +49,8 @@ modules:
         - brightnessctl
         - greetd
         - fastfetch
-        
+        - dux-calendar
+
         # Terminal & DevTools
         - ghostty
         - neovim       
@@ -58,6 +60,7 @@ modules:
         - fd-find
         - mise
         - gh
+        - fzf
 
         # Snapshots
         - btrfs-progs
@@ -113,6 +116,8 @@ modules:
           - org.gnome.Loupe
           - com.bitwarden.desktop
           - org.libreoffice.LibreOffice
+          - io.github.flattool.Warehouse
+          - com.github.tchx84.Flatseal
       - scope: user # Also add Flathub user repo, but no user packages
 
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
