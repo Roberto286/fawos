@@ -65,6 +65,7 @@ modules:
         # Snapshots
         - btrfs-progs
         - snapper
+        - btrfs-assistant
 
     remove:
       packages:
