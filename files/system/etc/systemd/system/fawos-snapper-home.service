@@ -1,0 +1,13 @@
+[Unit]
+Description=Create the snapper snapshot subvolume for /var/home
+Documentation=man:snapper(8) man:snapper-configs(5)
+ConditionPathExists=/var/home
+After=local-fs.target
+Before=snapper-timeline.service snapper-cleanup.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/fawos/snapper-home
+
+[Install]
+WantedBy=multi-user.target

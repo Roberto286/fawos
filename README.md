@@ -66,6 +66,41 @@ Before deploying a new kernel, test booting the image in a VM and retain a known
 
 If build on Fedora Atomic, you can generate an offline ISO with the instructions available [here](https://blue-build.org/how-to/generate-iso/#_top). These ISOs cannot unfortunately be distributed on GitHub for free due to large sizes, so for public projects something else has to be used for hosting.
 
+## Filesystem
+
+The installer has no filesystem picker; the layout comes from Anaconda's `fedora` profile, which provisions **BTRFS** (`zstd:1` compression, subvolumes for `/` and `/home`, `/boot` on ext4). The manual install path is kept consistent by `/usr/lib/bootc/install/50-fawos.toml` in the image, so `bootc install to-disk` also defaults to BTRFS.
+
+### Home directories
+
+Homes live on `/var/home`, with `/home` as a symlink to it (the ostree layout).
+`$HOME` is whatever `/etc/passwd` says, so an account created at install time can
+end up with the legacy `/home/<user>` spelling even though it is the same
+directory. `fawos-normalize-home.service` rewrites those entries to
+`/var/home/<user>` on boot; after the first run it is a no-op.
+
+```bash
+getent passwd roberto   # -> /var/home/roberto
+```
+
+### Snapshots
+
+`snapper` timeline snapshots of the home subvolume (`/var/home`) are preconfigured
+(6 hourly, 7 daily, 4 weekly, 6 monthly; config in `/etc/snapper/configs/home`).
+`fawos-snapper-home.service` creates the `.snapshots` subvolume on first boot.
+
+```bash
+sudo snapper -c home list
+sudo snapper -c home undochange <pre#>..<post#>
+```
+
+This needs `/var/home` to be its own btrfs subvolume, which is the layout the ISO
+produces. A bare `bootc install to-disk` puts it inside the root subvolume; there
+the setup service logs and leaves snapshots off.
+
+The OS itself does not need snapshots: bootc deployments are atomic and
+`bootc rollback` goes back to the previous one. The root subvolume is deliberately
+not snapshotted, because that would pin the ostree object store.
+
 ## Verification
 
 These images are signed with [Sigstore](https://www.sigstore.dev/)'s [cosign](https://github.com/sigstore/cosign). You can verify the signature by downloading the `cosign.pub` file from this repo and running the following command:

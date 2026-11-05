@@ -1,0 +1,5 @@
+# Default root filesystem for the bootc installer (`bootc install to-disk`).
+# The Anaconda ISO already installs BTRFS via its `fedora` profile; this keeps
+# the manual bootc install path on the same filesystem.
+[install.filesystem.root]
+type = "btrfs"

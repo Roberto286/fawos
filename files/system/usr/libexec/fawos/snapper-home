@@ -1,0 +1,17 @@
+#!/usr/bin/bash
+# Give snapper its .snapshots subvolume so the hourly timeline can run.
+# Only possible when /var/home is the root of a btrfs subvolume: the ISO
+# install produces that layout, a bare `bootc install to-disk` does not.
+set -euo pipefail
+
+readonly home_subvol=/var/home
+readonly snapshots="$home_subvol/.snapshots"
+
+if ! btrfs subvolume show "$home_subvol" >/dev/null 2>&1; then
+    echo "fawos-snapper: $home_subvol is not a btrfs subvolume, skipping snapshots" >&2
+    exit 0
+fi
+
+if [ ! -e "$snapshots" ]; then
+    btrfs subvolume create "$snapshots"
+fi

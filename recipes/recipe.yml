@@ -59,6 +59,10 @@ modules:
         - mise
         - gh
 
+        # Snapshots
+        - btrfs-progs
+        - snapper
+
     remove:
       packages:
         - firefox
@@ -117,3 +121,7 @@ modules:
     system:
       enabled:
         - greetd
+        - fawos-normalize-home.service
+        - fawos-snapper-home.service
+        - snapper-timeline.timer
+        - snapper-cleanup.timer

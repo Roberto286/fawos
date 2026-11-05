@@ -1,0 +1,13 @@
+[Unit]
+Description=Normalize user home directories to /var/home
+Documentation=man:usermod(8)
+ConditionPathIsSymbolicLink=/home
+After=local-fs.target
+Before=greetd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/fawos/normalize-home
+
+[Install]
+WantedBy=multi-user.target

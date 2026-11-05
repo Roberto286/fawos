@@ -1,0 +1,28 @@
+#!/usr/bin/bash
+# Rewrite user home directories recorded as /home/<user> to /var/home/<user>.
+# /home is a symlink to var/home in this image, so both spellings are the same
+# directory; only the string in /etc/passwd differs. Installers that create the
+# account before the image's /etc/default/useradd (HOME=/var/home) can be read
+# record /home instead, so normalize it here. Once /etc/passwd has no /home
+# entries left this is a no-op.
+set -euo pipefail
+
+if [ "$(readlink -f /home || true)" != /var/home ]; then
+    echo "fawos-normalize-home: /home is not a symlink to /var/home, skipping" >&2
+    exit 0
+fi
+
+while IFS=: read -r name _ uid _ gecos home shell; do
+    # Only regular users; root and system accounts keep their paths.
+    [ "$uid" -ge 1000 ] || continue
+    [ "$uid" -ne 65534 ] || continue
+
+    case "$home" in
+        /home/?*) ;;
+        *) continue ;;
+    esac
+
+    canonical="/var/home/${home#/home/}"
+    usermod -d "$canonical" "$name" </dev/null
+    echo "fawos-normalize-home: $name home -> $canonical"
+done < /etc/passwd
