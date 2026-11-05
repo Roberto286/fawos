@@ -33,3 +33,4 @@ BlueBuild recipe repo that builds the immutable `ghcr.io/roberto286/fawos` bootc
 - Commit messages: conventional commits with lowercase scope, e.g. `feat(packages): ...`, `fix(gh-actions): ...`.
 - `.omp/` holds the private cosign signing keys; it is gitignored — never add or commit anything from it.
 - `todo.md` is the user's personal task list (in Italian); leave it out of unrelated commits.
+- Always check `git status -sb` first and confirm you're on `main` before committing: the working tree has been found sitting on a `dependabot/*` branch with commits landing into it unnoticed.
