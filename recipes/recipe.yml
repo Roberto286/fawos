@@ -140,3 +140,6 @@ modules:
         - fawos-desktop-performance.service
         - snapper-timeline.timer
         - snapper-cleanup.timer
+    user:
+      enabled:
+        - fawos-setup.service

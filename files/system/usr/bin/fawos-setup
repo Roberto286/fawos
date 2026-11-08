@@ -1,0 +1,86 @@
+#!/usr/bin/bash
+set -uo pipefail
+
+if (( $# != 0 )); then
+    printf 'Usage: fawos-setup\n' >&2
+    exit 2
+fi
+
+if (( EUID == 0 )); then
+    printf 'Run fawos-setup as your regular user, without sudo.\n' >&2
+    exit 2
+fi
+
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+failed=()
+
+# EOF or Enter means no.
+ask() { local reply; read -r -p "$1 [y/N] " reply || return 1; [[ $reply == [yY]* ]]; }
+
+printf '\n== SSH key / GitHub ==\n'
+key=$HOME/.ssh/id_ed25519
+step_ok=1
+if [[ ! -e $key ]] && ask "Create an SSH key ($key)?"; then
+    mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+    ssh-keygen -t ed25519 -C "$USER@$(hostname)" -f "$key" || step_ok=0
+fi
+if [[ -e $key.pub ]] && ask 'Upload the key to GitHub with gh?'; then
+    if ! gh auth status >/dev/null 2>&1; then
+        gh auth login --git-protocol ssh --web || step_ok=0
+    fi
+    gh ssh-key add "$key.pub" --title "fawos $(hostname)" || step_ok=0
+fi
+(( step_ok )) || failed+=('SSH key / GitHub')
+
+printf '\n== Dotfiles remote ==\n'
+if chezmoi source-path >/dev/null 2>&1; then
+    if ssh -o StrictHostKeyChecking=accept-new -T git@github.com 2>&1 | grep -q 'successfully authenticated'; then
+        if ask 'Switch dotfiles remote to SSH?'; then
+            if chezmoi git -- remote set-url origin git@github.com:roberto286/dotfiles.git; then
+                printf "chezmoi-update.service pulls non-interactively: a passphrase-protected key needs a running ssh-agent, or 'fawos-update' dotfiles step will fail.\n"
+            else
+                failed+=('chezmoi remote')
+            fi
+        fi
+    else
+        printf 'GitHub SSH auth not working; skipping chezmoi remote switch.\n'
+    fi
+else
+    printf 'No chezmoi source directory; skipping.\n'
+fi
+
+printf '\n== Git identity ==\n'
+for k in user.name user.email; do
+    current=$(git config --global --get "$k" 2>/dev/null || true)
+    if [[ -n $current ]]; then
+        printf 'git %s already set: %s\n' "$k" "$current"
+        continue
+    fi
+    read -r -p "git $k (empty to skip): " v || v=
+    [[ -n $v ]] || continue
+    git config --global "$k" "$v" || failed+=('git identity')
+done
+
+cat <<'EOF'
+
+== Tips ==
+  - fawos-update updates image, flatpaks, dotfiles, and mise. Reboot after it.
+  - sudo bootc rollback returns to the previous image.
+  - snapper 'home' config snapshots /var/home. Use btrfs-assistant or 'snapper -c home list'.
+  - Flatseal manages flatpak permissions. Warehouse manages flatpaks.
+  - Rerun fawos-setup any time.
+EOF
+
+mkdir -p "$HOME/.local/state/fawos" && touch "$HOME/.local/state/fawos/setup-done"
+
+rc=0
+if (( ${#failed[@]} != 0 )); then
+    printf '\nSetup steps failed:\n' >&2
+    printf '  - %s\n' "${failed[@]}" >&2
+    rc=1
+fi
+
+read -r -p 'Press Enter to close. ' _ || true
+exit "$rc"

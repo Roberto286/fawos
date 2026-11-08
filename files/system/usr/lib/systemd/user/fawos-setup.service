@@ -1,0 +1,12 @@
+[Unit]
+Description=fawos first-login setup wizard
+ConditionPathExists=!%h/.local/state/fawos/setup-done
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/ghostty -e /usr/bin/fawos-setup
+
+[Install]
+WantedBy=graphical-session.target
