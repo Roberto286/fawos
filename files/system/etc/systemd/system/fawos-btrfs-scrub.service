@@ -1,0 +1,11 @@
+[Unit]
+Description=Scrub the btrfs root filesystem
+Documentation=man:btrfs-scrub(8)
+
+[Service]
+Type=oneshot
+# bootc install to-disk may use another filesystem; skip instead of failing.
+ExecCondition=/usr/bin/findmnt --noheadings --types btrfs /
+ExecStart=/usr/bin/btrfs scrub start -B /
+Nice=19
+IOSchedulingClass=idle

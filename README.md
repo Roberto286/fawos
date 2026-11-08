@@ -99,6 +99,10 @@ The OS itself does not need snapshots: bootc deployments are atomic and
 `bootc rollback` goes back to the previous one. The root subvolume is deliberately
 not snapshotted, because that would pin the ostree object store.
 
+### Maintenance
+
+`fawos-btrfs-scrub.timer` scrubs the root filesystem monthly (checksum verification; on a single disk it reports corrupt files but cannot repair them). `fstrim.timer` comes from the base image. There is no scheduled balance; run `sudo btrfs balance start -dusage=10 /` by hand if the disk reports `ENOSPC` with free space left.
+
 ## Verification
 
 These images are signed with [Sigstore](https://www.sigstore.dev/)'s [cosign](https://github.com/sigstore/cosign). You can verify the signature by downloading the `cosign.pub` file from this repo and running the following command:

@@ -152,6 +152,7 @@ modules:
         - fawos-desktop-performance.service
         - snapper-timeline.timer
         - snapper-cleanup.timer
+        - fawos-btrfs-scrub.timer
     user:
       enabled:
         - fawos-setup.service
