@@ -1,0 +1,13 @@
+[Unit]
+Description=Keep heavy, regenerable home directories out of /var/home snapshots
+Documentation=man:btrfs-subvolume(8) man:snapper-configs(5)
+ConditionPathIsDirectory=/var/home
+After=local-fs.target
+Before=systemd-user-sessions.service greetd.service snapper-timeline.service snapper-cleanup.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/fawos/home-subvolumes
+
+[Install]
+WantedBy=multi-user.target

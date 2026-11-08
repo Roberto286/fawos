@@ -1,0 +1,107 @@
+#!/usr/bin/bash
+# Turn heavy, regenerable home directories into nested btrfs subvolumes.
+# Snapshots never descend into nested subvolumes, so this is the only way to
+# keep them (Steam games, caches, toolchains) out of the snapper `home` config.
+# Idempotent: existing subvolumes are skipped, plain directories are converted
+# with a reflink copy, missing ones are created when their parent exists.
+# Failures are counted per path; the remaining paths are still processed.
+set -uo pipefail
+
+readonly home_root="${FAWOS_HOME_ROOT:-/var/home}"
+readonly excluded_paths=(
+    .cache
+    .cargo
+    .rustup
+    .local/share/mise
+    .local/share/containers
+    .var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps
+)
+
+if [ "$(stat -f -c %T "$home_root")" != btrfs ]; then
+    echo "fawos-home-subvolumes: $home_root is not on btrfs, skipping" >&2
+    exit 0
+fi
+
+# On btrfs, inode 256 is always a subvolume root; works without root.
+is_subvolume() {
+    [ -d "$1" ] && [ ! -L "$1" ] && [ "$(stat -c %i "$1")" = 256 ]
+}
+
+failures=0
+fail() {
+    failures=$((failures + 1))
+}
+
+for home in "$home_root"/*/; do
+    home="${home%/}"
+    [ -L "$home" ] && continue
+    [ -d "$home" ] || continue
+    [ "$(stat -c %u "$home")" = 0 ] && continue
+
+    for rel in "${excluded_paths[@]}"; do
+        target="$home/$rel"
+        parent=$(dirname "$target")
+        old="$target.fawos-old"
+
+        is_subvolume "$target" && continue
+
+        if [ -L "$target" ] || { [ -e "$target" ] && [ ! -d "$target" ]; }; then
+            echo "fawos-home-subvolumes: $target is not a plain directory, leaving it alone"
+            continue
+        fi
+
+        if [ -e "$old" ]; then
+            echo "fawos-home-subvolumes: $old exists from an interrupted run, resolve it manually"
+            fail
+            continue
+        fi
+
+        if [ ! -e "$target" ]; then
+            # Parent missing: the app has not been used yet.
+            [ -d "$parent" ] || continue
+            if btrfs subvolume create "$target" >/dev/null \
+                && chown --reference="$parent" "$target" \
+                && chmod --reference="$parent" "$target"; then
+                if command -v selinuxenabled >/dev/null && selinuxenabled; then
+                    restorecon "$target" \
+                        || echo "fawos-home-subvolumes: warning: restorecon failed on $target"
+                fi
+                echo "fawos-home-subvolumes: created $target"
+            else
+                fail
+            fi
+            continue
+        fi
+
+        # Plain directory: convert, unless it already holds a nested subvolume.
+        nested=$(find "$target" -mindepth 1 -inum 256 -print -quit 2>/dev/null)
+        if [ -n "$nested" ]; then
+            echo "fawos-home-subvolumes: $target contains a subvolume, not converting"
+            fail
+            continue
+        fi
+
+        mv "$target" "$old" || { fail; continue; }
+        if ! btrfs subvolume create "$target" >/dev/null; then
+            mv "$old" "$target"
+            fail
+            continue
+        fi
+        if ! cp -a --reflink=always "$old"/. "$target"/; then
+            rm -rf "$target"
+            mv "$old" "$target"
+            fail
+            continue
+        fi
+        if ! rm -rf "$old"; then
+            echo "fawos-home-subvolumes: $old must be removed manually"
+            fail
+        fi
+        echo "fawos-home-subvolumes: converted $target to a subvolume"
+    done
+done
+
+if [ "$failures" -gt 0 ]; then
+    echo "fawos-home-subvolumes: $failures path(s) failed"
+    exit 1
+fi

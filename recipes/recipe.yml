@@ -74,6 +74,12 @@ modules:
         - firefox-langpacks
         - alacritty
 
+  # snapper-libs ships SNAPPER_CONFIGS="" (%config); register the home config
+  # from files/system/etc/snapper/configs/home so the timeline actually runs.
+  - type: script
+    snippets:
+      - sed -i 's/^SNAPPER_CONFIGS=.*/SNAPPER_CONFIGS="home"/' /etc/sysconfig/snapper && grep -qx 'SNAPPER_CONFIGS="home"' /etc/sysconfig/snapper
+
   # Replace only the stock Fedora kernel; fail if CachyOS is unavailable.
   - type: dnf
     env:
@@ -130,5 +136,6 @@ modules:
         - greetd
         - fawos-normalize-home.service
         - fawos-snapper-home.service
+        - fawos-home-subvolumes.service
         - snapper-timeline.timer
         - snapper-cleanup.timer
