@@ -1,8 +1,6 @@
 # fawos &nbsp; [![bluebuild build badge](https://github.com/roberto286/fawos/actions/workflows/build.yml/badge.svg)](https://github.com/roberto286/fawos/actions/workflows/build.yml)
 
-See the [BlueBuild docs](https://blue-build.org/how-to/setup/) for quick setup instructions for setting up your own repository based on this template.
-
-After setup, it is recommended you update this README to describe your custom image.
+Personal Fedora bootc image: niri + DankMaterialShell, CachyOS kernel, BTRFS with home snapshots.
 
 ## Installation
 
@@ -28,7 +26,7 @@ To rebase an existing atomic Fedora installation to the latest build:
   systemctl reboot
   ```
 
-The `latest` tag tracks the latest fawos build. The recipe also uses the base image's `latest` tag, so new builds automatically follow Fedora major releases. If the CachyOS COPR does not support the new Fedora release yet, the build fails instead of falling back to the Fedora kernel. Existing installations remain on the last successfully published image until a new build succeeds.
+The `latest` tag tracks the latest fawos build. The image follows Fedora **45**. A major bump is a manual edit of `image-version` in `recipes/recipe.yml`, done once the CachyOS COPR supports the new release. If the COPR lags, the build fails instead of falling back to the Fedora kernel, and existing installations remain on the last successfully published image.
 
 ## Updates
 
@@ -42,7 +40,7 @@ The command updates:
 
 - The system image with `sudo bootc upgrade`, including the kernel, RPM packages, and the mise/chezmoi executables. This downloads the latest published fawos image; it does not rebuild it or run DNF on the host.
 - Flatpak applications and runtimes in both the default system installation and the current user's installation. Only the system installation uses sudo.
-- Dotfiles through the existing `chezmoi-update.service` user service, preserving its configured conflict policy. The current `replace` policy overwrites local changes to managed dotfiles.
+- Dotfiles through the existing `chezmoi-update.service` user service. The chezmoi policy is `skip`: dotfiles you changed locally are never overwritten, the service reports a failure (desktop notification), and `fawos-update` lists them. Save with `chezmoi re-add`, or discard with `chezmoi apply --force <file>`.
 - Tools in the user's global mise configuration with `mise upgrade --global --yes`. Version ranges and exact pins are respected; project configurations and project lockfiles are not changed, regardless of the current directory.
 
 Failed steps are listed at the end and the command exits with status 1; other steps are still attempted. Interrupting the command stops it. Successful updates are not rolled back when another step fails.
@@ -64,11 +62,11 @@ Before deploying a new kernel, test booting the image in a VM and retain a known
 
 ## ISO
 
-If build on Fedora Atomic, you can generate an offline ISO with the instructions available [here](https://blue-build.org/how-to/generate-iso/#_top). These ISOs cannot unfortunately be distributed on GitHub for free due to large sizes, so for public projects something else has to be used for hosting.
+`.github/workflows/build-iso.yml` builds an Anaconda installer ISO from the published image on the 1st of each month (or via manual dispatch) and uploads it as a workflow artifact kept for 7 days.
 
 ## Filesystem
 
-The installer has no filesystem picker; the layout comes from Anaconda's `fedora` profile, which provisions **BTRFS** (`zstd:1` compression, subvolumes for `/` and `/home`, `/boot` on ext4). The manual install path is kept consistent by `/usr/lib/bootc/install/50-fawos.toml` in the image, so `bootc install to-disk` also defaults to BTRFS.
+The installer has no filesystem picker; the layout comes from Anaconda's `fedora` profile, which provisions **BTRFS** (`zstd:1` compression, subvolumes for `/` and `/home`, `/boot` on ext4). The manual install path is kept consistent by `/usr/lib/bootc/install/50-fawos.toml` in the image, so `bootc install to-disk` also defaults to BTRFS. Enable disk encryption in Anaconda on laptops; the image does not enforce it.
 
 ### Home directories
 

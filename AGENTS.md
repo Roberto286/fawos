@@ -1,6 +1,6 @@
 # fawos
 
-BlueBuild recipe repo that builds the immutable `ghcr.io/roberto286/fawos` bootc image and a daily ISO. There is no app code; changes are to YAML, shell, and dotfile-on-image content.
+BlueBuild recipe repo that builds the immutable `ghcr.io/roberto286/fawos` bootc image and a monthly ISO. There is no app code; changes are to YAML, shell, and dotfile-on-image content.
 
 ## Layout
 
@@ -26,7 +26,7 @@ BlueBuild recipe repo that builds the immutable `ghcr.io/roberto286/fawos` bootc
 ## Image/known gotchas
 
 - Stock Fedora `kernel` is *removed* and `kernel-cachyos` (COPR) replaces it. Missing COPR = build failure, on purpose — do not add a fallback kernel. Dracut runs with `DRACUT_NO_XATTR=1` in both the kernel and initramfs modules; needed for builds to pass.
-- The chezmoi module bakes in `Roberto286/dotfiles` with `file-conflict-policy: replace`; user-facing changes to those configs belong in that dotfiles repo, not here.
+- The chezmoi module bakes in `Roberto286/dotfiles` with `file-conflict-policy: skip` (local edits are kept; `fawos-update` lists drift); user-facing changes to those configs belong in that dotfiles repo, not here.
 - Filesystem: neither Anaconda nor `bootc install` has a fs picker. The ISO's Anaconda profile (`fedora` in `install.img`, matched on `ID=fedora`) provisions BTRFS with `zstd:1`; `files/system/usr/lib/bootc/install/50-fawos.toml` makes `bootc install to-disk` default to BTRFS too. Don't add an fs choice to the ISO — the jasonn3 builder cannot express it.
 - Homes: `/home` is a symlink to `/var/home` and `/etc/default/useradd` has `HOME=/var/home`, so runtime `useradd` is correct. Anaconda's user spoke pre-fills the home field from the *empty* target sysroot (falls back to `/home`), so an account created during install can be recorded as `/home/<user>`. `fawos-normalize-home.service` rewrites those `/etc/passwd` entries to `/var/home` at boot — keep it enabled, it is the only install-path-agnostic fix.
 - Snapshots: `snapper` config `home` targets `/var/home` (not `/`, which would pin the ostree repo inside the root subvolume). `fawos-snapper-home.service` creates `.snapshots` on first boot and no-ops when `/var/home` is not a subvolume. No boot-menu snapshots: grub-btrfs is not packaged in Fedora and does not work with ostree/BLS entries; OS rollback is `bootc rollback`.
