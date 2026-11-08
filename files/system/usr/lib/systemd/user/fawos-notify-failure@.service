@@ -1,0 +1,6 @@
+[Unit]
+Description=Notify the desktop that %i failed
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/notify-send --app-name=fawos --urgency=critical "%i failed" "Details: journalctl --user -u %i"

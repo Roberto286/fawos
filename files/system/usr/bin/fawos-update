@@ -33,6 +33,9 @@ update 'System image (including kernel and RPM packages)' sudo bootc upgrade
 update 'System Flatpaks' sudo flatpak update --system --noninteractive
 update 'User Flatpaks' flatpak update --user --noninteractive
 update 'Dotfiles' systemctl --user start --wait chezmoi-update.service
+if drift=$(chezmoi status --exclude=scripts 2>/dev/null) && [[ -n $drift ]]; then
+    printf '\nDotfiles differing from the repo (save: chezmoi re-add; discard: chezmoi apply --force <file>):\n%s\n' "$drift"
+fi
 update 'Global mise tools' mise upgrade --global --yes
 
 if (( ${#failed[@]} != 0 )); then
