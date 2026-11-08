@@ -61,6 +61,7 @@ modules:
         - mise
         - gh
         - fzf
+        - gcc
 
         # Snapshots
         - btrfs-progs
