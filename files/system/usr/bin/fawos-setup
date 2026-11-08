@@ -38,9 +38,7 @@ printf '\n== Dotfiles remote ==\n'
 if chezmoi source-path >/dev/null 2>&1; then
     if ssh -o StrictHostKeyChecking=accept-new -T git@github.com 2>&1 | grep -q 'successfully authenticated'; then
         if ask 'Switch dotfiles remote to SSH?'; then
-            if chezmoi git -- remote set-url origin git@github.com:roberto286/dotfiles.git; then
-                printf "chezmoi-update.service pulls non-interactively: a passphrase-protected key needs a running ssh-agent, or 'fawos-update' dotfiles step will fail.\n"
-            else
+            if ! chezmoi git -- remote set-url origin git@github.com:roberto286/dotfiles.git; then
                 failed+=('chezmoi remote')
             fi
         fi
@@ -51,18 +49,6 @@ else
     printf 'No chezmoi source directory; skipping.\n'
 fi
 
-printf '\n== Git identity ==\n'
-for k in user.name user.email; do
-    current=$(git config --global --get "$k" 2>/dev/null || true)
-    if [[ -n $current ]]; then
-        printf 'git %s already set: %s\n' "$k" "$current"
-        continue
-    fi
-    read -r -p "git $k (empty to skip): " v || v=
-    [[ -n $v ]] || continue
-    git config --global "$k" "$v" || failed+=('git identity')
-done
-
 cat <<'EOF'
 
 == Tips ==
@@ -70,6 +56,7 @@ cat <<'EOF'
   - sudo bootc rollback returns to the previous image.
   - snapper 'home' config snapshots /var/home. Use btrfs-assistant or 'snapper -c home list'.
   - Flatseal manages flatpak permissions. Warehouse manages flatpaks.
+  - Dotfiles changed by apps (DMS settings, mise use -g, fisher, Lazy) stay local until 'chezmoi re-add'; fawos-update lists them.
   - Rerun fawos-setup any time.
 EOF
 
