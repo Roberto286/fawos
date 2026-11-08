@@ -1,24 +1,21 @@
 # yaml-language-server: $schema=https://blue-build.org
-# image will be published to ghcr.io/<user>/<name>
 name: fawos
-# description will be included in the image's metadata
 description: Finally A Working OS! 
 
-# the base image to build on top of (FROM) and the version tag to use
 base-image: ghcr.io/blue-build/base-images/fedora-base
-image-version: latest # You can pin to a specific version of Fedora as well
+# Bump by hand once the CachyOS COPR supports the new Fedora release.
+image-version: 45
 
-# module configuration, executed in order
-# you can include multiple instances of the same module
 modules:
   - type: chezmoi
     repository: "https://github.com/roberto286/dotfiles"
-    file-conflict-policy: replace
+    # Locally changed dotfiles are kept; fawos-update lists them for `chezmoi re-add`.
+    file-conflict-policy: skip
 
   - type: files
     files:
       - source: system
-        destination: / # copies files/system/* (* means everything inside it) into your image's root folder /
+        destination: /
 
   - type: dnf
     repos:
@@ -62,6 +59,17 @@ modules:
         - gh
         - fzf
         - gcc
+        - podman-compose
+
+        # Desktop integration
+        - nautilus
+        - gnome-keyring
+        - gnome-keyring-pam
+        - gcr
+        - wtype
+
+        # Gaming: controller udev rules only; Steam itself is per-machine (dotfiles)
+        - steam-devices
 
         # Snapshots
         - btrfs-progs
@@ -79,6 +87,9 @@ modules:
   - type: script
     snippets:
       - sed -i 's/^SNAPPER_CONFIGS=.*/SNAPPER_CONFIGS="home"/' /etc/sysconfig/snapper && grep -qx 'SNAPPER_CONFIGS="home"' /etc/sysconfig/snapper
+      # dms-greeter's %post writes a minimal /etc/pam.d/greetd that shadows greetd's
+      # /usr/lib/pam.d/greetd and drops pam_gnome_keyring (keyring unlock at login).
+      - rm -f /etc/pam.d/greetd && grep -q pam_gnome_keyring /usr/lib/pam.d/greetd
 
   # Replace only the stock Fedora kernel; fail if CachyOS is unavailable.
   - type: dnf
@@ -115,10 +126,9 @@ modules:
 
   - type: default-flatpaks
     configurations:
-      - notify: true # Send notification after install/uninstall is finished (true/false)
+      - notify: true
         scope: system
-        # If no repo information is specified, Flathub will be used by default
-        install: # system flatpaks we want all users to have and not remove
+        install:
           - org.chromium.Chromium
           - org.chromium.Chromium.Codecs
           - org.gnome.Loupe
@@ -126,9 +136,11 @@ modules:
           - org.libreoffice.LibreOffice
           - io.github.flattool.Warehouse
           - com.github.tchx84.Flatseal
-      - scope: user # Also add Flathub user repo, but no user packages
+          - org.gnome.Papers
+          - org.gnome.Showtime
+      - scope: user
 
-  - type: signing # this sets up the proper policy & signing files for signed images to work fully
+  - type: signing
 
   - type: systemd
     system:
@@ -143,3 +155,5 @@ modules:
     user:
       enabled:
         - fawos-setup.service
+        - gcr-ssh-agent.socket
+        - podman.socket
