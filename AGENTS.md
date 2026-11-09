@@ -4,8 +4,9 @@ BlueBuild recipe repo that builds the immutable `ghcr.io/roberto286/fawos` bootc
 
 ## Layout
 
-- `recipes/recipe.yml` is the single source of truth for the image: base image, COPRs, packages, kernel replacement, flatpaks, systemd presets. Modules run top-to-bottom in listed order. Schema: `# yaml-language-server: $schema=...` at the top.
-- `files/system/*` is copied verbatim to the image root `/` by the `files` module — e.g. `files/system/usr/bin/fawos-update` becomes `/usr/bin/fawos-update`. Nothing else touches those paths.
+- Two images, three recipes: `recipes/common.yml` (shared modules: base config, packages, kernel) is pulled in with `from-file` by `recipes/recipe.yml` (`fawos`, laptop/general) and `recipes/recipe-desktop.yml` (`fawos-desktop`, gaming host). Both keep `initramfs`, flatpaks, `signing`, `systemd` last. Modules run top-to-bottom. Schema: `# yaml-language-server: $schema=...` at the top. Gaming-only things go in the desktop recipe, never in `common.yml`.
+- `files/system/*` is copied verbatim to the image root `/` by the `files` module — e.g. `files/system/usr/bin/fawos-update` becomes `/usr/bin/fawos-update`. `files/system-desktop/*` is the same for the desktop image only. Nothing else touches those paths.
+- Desktop streaming (Sunshine, `gaming` user, Moonlight-triggered login, poweroff at stream end): see `docs/desktop-streaming.md`. `tests/test_recipes.py` needs PyYAML and skips without it.
 - `modules/` is empty (only `.gitkeep`); `Containerfile` and `.bluebuild-scripts_*` are build artifacts (gitignored).
 
 ## Verification (local)
