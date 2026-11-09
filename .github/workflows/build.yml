@@ -33,6 +33,7 @@ jobs:
         recipe:
           # !! Add your recipes here
           - recipe.yml
+          - recipe-desktop.yml
     steps:
       # the build is fully handled by the reusable github action
       - name: Build Custom Image
@@ -64,7 +65,9 @@ jobs:
           import yaml
           files = (".github/workflows/build.yml",
                    ".github/workflows/build-iso.yml",
-                   "recipes/recipe.yml")
+                   "recipes/common.yml",
+                   "recipes/recipe.yml",
+                   "recipes/recipe-desktop.yml")
           for f in files:
               yaml.safe_load(open(f))
           print("all valid")'

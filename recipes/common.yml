@@ -1,0 +1,115 @@
+# yaml-language-server: $schema=https://schema.blue-build.org/module-list-v1.json
+
+modules:
+  - type: chezmoi
+    repository: "https://github.com/roberto286/dotfiles"
+    # Locally changed dotfiles are kept; fawos-update lists them for `chezmoi re-add`.
+    file-conflict-policy: skip
+
+  - type: files
+    files:
+      - source: system
+        destination: /
+
+  - type: dnf
+    repos:
+      cleanup: true
+      copr:
+        enable:
+          - avengemedia/danklinux
+          - scottames/ghostty
+          - yalter/niri
+          - alebastr/greetd
+          - jdxcode/mise
+          - duxlabs/dux-repo
+    install:
+      allow-erasing: true
+      install-weak-deps: false
+      packages:
+        # Core Session & Compositor
+        - niri
+        - wayland-utils
+        - xdg-desktop-portal-gnome
+        - power-profiles-daemon
+        - fprintd
+        - make
+        
+        # DMS & Utility Shell
+        - dms
+        - dms-greeter
+        - brightnessctl
+        - greetd
+        - fastfetch
+        - dux-calendar
+
+        # Terminal & DevTools
+        - ghostty
+        - neovim       
+        - fish
+        - git
+        - ripgrep     
+        - fd-find
+        - mise
+        - gh
+        - fzf
+        - gcc
+        - podman-compose
+
+        # Desktop integration
+        - nautilus
+        - gnome-keyring
+        - gnome-keyring-pam
+        - gcr
+        - wtype
+
+        # Gaming: controller udev rules only; Steam itself is per-machine (dotfiles)
+        - steam-devices
+
+        # Snapshots
+        - btrfs-progs
+        - snapper
+        - btrfs-assistant
+
+    remove:
+      packages:
+        - firefox
+        - firefox-langpacks
+        - alacritty
+
+  # snapper-libs ships SNAPPER_CONFIGS="" (%config); register the home config
+  # from files/system/etc/snapper/configs/home so the timeline actually runs.
+  - type: script
+    snippets:
+      - sed -i 's/^SNAPPER_CONFIGS=.*/SNAPPER_CONFIGS="home"/' /etc/sysconfig/snapper && grep -qx 'SNAPPER_CONFIGS="home"' /etc/sysconfig/snapper
+      # dms-greeter's %post writes a minimal /etc/pam.d/greetd that shadows greetd's
+      # /usr/lib/pam.d/greetd and drops pam_gnome_keyring (keyring unlock at login).
+      - rm -f /etc/pam.d/greetd && grep -q pam_gnome_keyring /usr/lib/pam.d/greetd
+
+  # Replace only the stock Fedora kernel; fail if CachyOS is unavailable.
+  - type: dnf
+    env:
+      DRACUT_NO_XATTR: "1"
+    repos:
+      cleanup: true
+      copr:
+        enable:
+          - bieszczaders/kernel-cachyos
+    remove:
+      auto-remove: false
+      packages:
+        - kernel
+        - kernel-core
+        - kernel-modules
+        - kernel-modules-core
+        - kernel-modules-extra
+    install:
+      install-weak-deps: false
+      packages:
+        - kernel-cachyos
+
+  - type: script
+    snippets:
+      # Persist the policy without reloading the build host's SELinux policy.
+      - setsebool -N -P domain_kernel_load_modules on
+      # The RPM also writes this redundant symbol file outside the bootc kernel tree.
+      - rm -f "/boot/symvers-$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}' kernel-cachyos-core).zst"

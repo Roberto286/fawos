@@ -1,0 +1,88 @@
+# yaml-language-server: $schema=https://blue-build.org
+name: fawos-desktop
+description: "Finally A Working OS! (desktop, game streaming host)"
+
+base-image: ghcr.io/blue-build/base-images/fedora-base
+# Bump by hand once the CachyOS COPR supports the new Fedora release.
+image-version: 45
+
+modules:
+  - from-file: common.yml
+
+  - type: files
+    files:
+      - source: system-desktop
+        destination: /
+
+  - type: dnf
+    repos:
+      cleanup: true
+      nonfree: rpmfusion
+      copr:
+        enable:
+          - lizardbyte/stable
+    install:
+      # Installing the freeworld VA-API driver swaps out Fedora's mesa-va-drivers
+      # (no H.264/HEVC encode) so Sunshine can encode HEVC on the RX 6700 XT.
+      allow-erasing: true
+      install-weak-deps: false
+      packages:
+        - Sunshine
+        - gamescope
+        - ddcutil
+        - mesa-va-drivers-freeworld
+
+  - type: script
+    snippets:
+      # KMS capture needs CAP_SYS_ADMIN on the real binary.
+      - setcap cap_sys_admin+p "$(readlink -f /usr/bin/sunshine)"
+
+  - type: default-flatpaks
+    configurations:
+      - scope: system
+        install:
+          - com.valvesoftware.Steam
+
+  - type: systemd
+    system:
+      enabled:
+        - fawos-gaming-trigger.socket
+
+  - type: initramfs
+    env:
+      DRACUT_NO_XATTR: "1"
+
+  - type: default-flatpaks
+    configurations:
+      - notify: true
+        scope: system
+        install:
+          - org.chromium.Chromium
+          - org.chromium.Chromium.Codecs
+          - org.gnome.Loupe
+          - com.bitwarden.desktop
+          - org.libreoffice.LibreOffice
+          - io.github.flattool.Warehouse
+          - com.github.tchx84.Flatseal
+          - org.gnome.Papers
+          - org.gnome.Showtime
+      - scope: user
+
+  - type: signing
+
+  - type: systemd
+    system:
+      enabled:
+        - greetd
+        - fawos-normalize-home.service
+        - fawos-snapper-home.service
+        - fawos-home-subvolumes.service
+        - fawos-desktop-performance.service
+        - snapper-timeline.timer
+        - snapper-cleanup.timer
+        - fawos-btrfs-scrub.timer
+    user:
+      enabled:
+        - fawos-setup.service
+        - gcr-ssh-agent.socket
+        - podman.socket
