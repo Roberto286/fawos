@@ -6,6 +6,7 @@ set -uo pipefail
 LOGINCTL=${FAWOS_LOGINCTL:-/usr/bin/loginctl}
 SYSTEMCTL=${FAWOS_SYSTEMCTL:-/usr/bin/systemctl}
 FLAG=${FAWOS_GREETD_FLAG:-/run/fawos/gaming-greetd.toml}
+DROPIN=${FAWOS_GREETD_DROPIN:-/run/systemd/system/greetd.service.d/fawos-gaming.conf}
 BASE=${FAWOS_GREETD_BASE:-/etc/greetd/config.toml}
 
 [[ -e $FLAG ]] && exit 0   # already triggered; greetd is about to restart
@@ -25,6 +26,12 @@ mkdir -p "$(dirname "$FLAG")"
     cat "$BASE"
     printf '\n[initial_session]\ncommand = "/usr/bin/gamescope-session"\nuser = "gaming"\n'
 } > "$FLAG"
+
+# Override ExecStart in /run only (gone at reboot). Keep ExecStart pointing at the real
+# greetd binary: a wrapper script has the wrong SELinux label and breaks PAM transitions.
+mkdir -p "$(dirname "$DROPIN")"
+printf '[Service]\nExecStart=\nExecStart=/usr/bin/greetd -c %s\n' "$FLAG" > "$DROPIN"
+"$SYSTEMCTL" daemon-reload
 
 "$SYSTEMCTL" --no-block restart greetd
 "$SYSTEMCTL" --no-block stop fawos-gaming-trigger.socket   # free 47989 for Sunshine

@@ -32,6 +32,7 @@ class TriggerTests(unittest.TestCase):
             "FAWOS_LOGINCTL": str(self.tmp / "loginctl"),
             "FAWOS_SYSTEMCTL": str(self.tmp / "systemctl"),
             "FAWOS_GREETD_FLAG": str(self.tmp / "run/flag.toml"),
+            "FAWOS_GREETD_DROPIN": str(self.tmp / "run/dropin.conf"),
             "FAWOS_GREETD_BASE": str(self.tmp / "base.toml"),
         }
         return subprocess.run([str(TRIGGER)], env=env, capture_output=True, timeout=10)
@@ -50,6 +51,9 @@ class TriggerTests(unittest.TestCase):
         self.assertIn('user = "gaming"', text)
         self.assertEqual(self.restarts(), 1)
         self.assertIn("stop fawos-gaming-trigger.socket", self.calls.read_text())
+        dropin = (self.tmp / "run/dropin.conf").read_text()
+        self.assertIn(f"ExecStart=/usr/bin/greetd -c {self.flag()}", dropin)
+        self.assertIn("daemon-reload", self.calls.read_text())
 
     def test_any_user_session_blocks_trigger(self):
         # Class=user covers active, locked and background sessions alike.
