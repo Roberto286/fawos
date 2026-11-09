@@ -1,0 +1,30 @@
+#!/usr/bin/bash
+# Runs once per connection on TCP 47989 (socket, Accept=yes) while greetd shows the greeter.
+# If seat0 has only the greeter session, log the gaming user in; otherwise do nothing.
+set -uo pipefail
+
+LOGINCTL=${FAWOS_LOGINCTL:-/usr/bin/loginctl}
+SYSTEMCTL=${FAWOS_SYSTEMCTL:-/usr/bin/systemctl}
+FLAG=${FAWOS_GREETD_FLAG:-/run/fawos/gaming-greetd.toml}
+BASE=${FAWOS_GREETD_BASE:-/etc/greetd/config.toml}
+
+[[ -e $FLAG ]] && exit 0   # already triggered; greetd is about to restart
+
+greeter=0
+while read -r id _; do
+    [[ -n $id ]] || continue
+    case $("$LOGINCTL" show-session "$id" -p Class --value) in
+        greeter) greeter=1 ;;
+        *) exit 0 ;;       # any non-greeter session (active, locked, background) blocks
+    esac
+done < <("$LOGINCTL" list-sessions --no-legend)
+(( greeter )) || exit 0
+
+mkdir -p "$(dirname "$FLAG")"
+{
+    cat "$BASE"
+    printf '\n[initial_session]\ncommand = "/usr/bin/gamescope-session"\nuser = "gaming"\n'
+} > "$FLAG"
+
+"$SYSTEMCTL" --no-block restart greetd
+"$SYSTEMCTL" --no-block stop fawos-gaming-trigger.socket   # free 47989 for Sunshine

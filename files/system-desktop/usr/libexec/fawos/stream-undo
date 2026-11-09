@@ -1,0 +1,3 @@
+#!/usr/bin/bash
+# Sunshine prep-cmd undo: the stream ended, power the PC off (next boot re-arms the trigger).
+exec "${FAWOS_SYSTEMCTL:-/usr/bin/systemctl}" poweroff

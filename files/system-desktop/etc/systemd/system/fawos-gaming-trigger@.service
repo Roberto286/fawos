@@ -1,0 +1,7 @@
+[Unit]
+Description=Log the gaming user in if only the greeter is up
+
+[Service]
+ExecStart=/usr/libexec/fawos/gaming-trigger
+StandardInput=socket
+StandardOutput=null

@@ -1,0 +1,5 @@
+#!/usr/bin/bash
+# Turn the physical monitor off over DDC/CI (VCP d6 = power mode, 5 = off).
+# Needs a monitor with DDC/CI enabled; a failure must not abort the stream.
+"${FAWOS_DDCUTIL:-/usr/bin/ddcutil}" setvcp d6 5 || true
+exit 0

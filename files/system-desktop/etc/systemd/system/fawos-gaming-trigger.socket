@@ -1,0 +1,9 @@
+[Unit]
+Description=Moonlight poll on 47989 while the greeter is shown
+
+[Socket]
+ListenStream=47989
+Accept=yes
+
+[Install]
+WantedBy=sockets.target

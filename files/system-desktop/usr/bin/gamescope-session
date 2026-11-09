@@ -1,0 +1,6 @@
+#!/usr/bin/bash
+# greetd initial_session for the gaming user: Sunshine + Steam Big Picture in gamescope.
+set -uo pipefail
+flatpak override --user --filesystem=/var/games com.valvesoftware.Steam
+/usr/bin/sunshine /usr/share/fawos/sunshine.conf &
+exec /usr/bin/gamescope -e -f -- flatpak run com.valvesoftware.Steam -gamepadui

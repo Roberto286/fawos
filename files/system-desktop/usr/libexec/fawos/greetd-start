@@ -1,0 +1,8 @@
+#!/usr/bin/bash
+# greetd ExecStart wrapper: consume a one-shot config written by gaming-trigger.
+flag=/run/fawos/gaming-greetd.toml
+active=/run/fawos/greetd-active.toml
+if [[ -e $flag ]]; then
+    mv "$flag" "$active" && exec /usr/bin/greetd -c "$active"
+fi
+exec /usr/bin/greetd

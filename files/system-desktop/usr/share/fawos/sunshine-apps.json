@@ -1,0 +1,15 @@
+{
+  "env": {},
+  "apps": [
+    {
+      "name": "Steam Big Picture",
+      "cmd": "",
+      "prep-cmd": [
+        {
+          "do": "/usr/libexec/fawos/monitor-off",
+          "undo": "/usr/libexec/fawos/stream-undo"
+        }
+      ]
+    }
+  ]
+}
