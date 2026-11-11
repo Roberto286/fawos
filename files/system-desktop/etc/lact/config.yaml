@@ -1,0 +1,20 @@
+# Profilo GPU del fisso da gaming (fawos-desktop).
+#
+# XFX Speedster QICK 319 RX 6700 XT (Navi 22, 1002:73DF / 1EAE:6601).
+# Valori misurati con gli strumenti manuali prima di passare a LACT:
+#   stock   2595 MHz @ 155-165 W, 67 C
+#   profilo 2750 MHz @ 150-175 W, 66 C   (-40 mV di offset, 0 artefatti)
+# Il tetto di potenza della scheda e' 186 W, quindi non c'e' margine per salire
+# oltre i 2750 MHz senza rischiare instabilita'.
+#
+# Richiede il karg amdgpu.ppfeaturemask=0xffffffff (usr/lib/bootc/kargs.d):
+# senza di esso il kernel non espone pp_od_clk_voltage e il daemon ignora i clock.
+daemon:
+  log_level: info
+  admin_group: wheel
+  admin_user: roberto
+
+gpus:
+  1002:73DF-1EAE:6601-0000:0a:00.0:
+    voltage_offset: -40
+    max_core_clock: 2750

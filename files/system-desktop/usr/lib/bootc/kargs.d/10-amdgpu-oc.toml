@@ -1,0 +1,4 @@
+# Abilita l'interfaccia di overdrive di amdgpu (pp_od_clk_voltage), richiesta
+# da LACT per undervolt e clock massimo. Senza questo parametro il file non
+# esiste e le impostazioni in /etc/lact/config.yaml vengono ignorate.
+kargs = ["amdgpu.ppfeaturemask=0xffffffff"]

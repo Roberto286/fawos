@@ -21,6 +21,7 @@ modules:
       copr:
         enable:
           - lizardbyte/stable
+          - ilyaz/LACT
     install:
       # Installing the freeworld VA-API driver swaps out Fedora's mesa-va-drivers
       # (no H.264/HEVC encode) so Sunshine can encode HEVC on the RX 6700 XT.
@@ -31,6 +32,9 @@ modules:
         - gamescope
         - ddcutil
         - mesa-va-drivers-freeworld
+        # Undervolt + clock della RX 6700 XT: i valori stanno in
+        # files/system-desktop/etc/lact/config.yaml, il karg in usr/lib/bootc/kargs.d.
+        - lact
 
   - type: script
     snippets:
@@ -74,6 +78,7 @@ modules:
     system:
       enabled:
         - greetd
+        - lactd
         - fawos-normalize-home.service
         - fawos-snapper-home.service
         - fawos-home-subvolumes.service
