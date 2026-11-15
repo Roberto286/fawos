@@ -16,8 +16,7 @@ modules:
       cleanup: true
       copr:
         enable:
-          - avengemedia/danklinux
-          - scottames/ghostty
+          - duxlabs/dms
           - yalter/niri
           - alebastr/greetd
           - jdxcode/mise
@@ -34,13 +33,25 @@ modules:
         - fprintd
         - make
         
-        # DMS & Utility Shell
+        # Dux suite (duxlabs/dms + duxlabs/dux-repo)
         - dms
-        - dms-greeter
+        - dux-greeter
+        - dux-gop
+        - dux-search
+        - dux-calendar
+        - dux-files
+        # DMS optional features (dms only Recommends these; weak deps are off)
+        - matugen
+        - cava
+        - qt6-qtmultimedia
+        - qt6-qtimageformats
+        - kf6-kimageformats
+        - cups-pk-helper
+        - adw-gtk3-theme
+        - wl-clipboard
         - brightnessctl
         - greetd
         - fastfetch
-        - dux-calendar
 
         # Terminal & DevTools
         - ghostty
@@ -56,7 +67,9 @@ modules:
         - podman-compose
 
         # Desktop integration
-        - nautilus
+        - gvfs
+        - udisks2
+        - qt6-qtpdf
         - gnome-keyring
         - gnome-keyring-pam
         - gcr
@@ -81,8 +94,8 @@ modules:
   - type: script
     snippets:
       - sed -i 's/^SNAPPER_CONFIGS=.*/SNAPPER_CONFIGS="home"/' /etc/sysconfig/snapper && grep -qx 'SNAPPER_CONFIGS="home"' /etc/sysconfig/snapper
-      # dms-greeter's %post writes a minimal /etc/pam.d/greetd that shadows greetd's
-      # /usr/lib/pam.d/greetd and drops pam_gnome_keyring (keyring unlock at login).
+      # dux-greeter's %post writes a minimal /etc/pam.d/greetd (no pam_gnome_keyring) when
+      # greetd's /usr/lib/pam.d/greetd is missing; keep the guard so keyring unlock at login survives.
       - rm -f /etc/pam.d/greetd && grep -q pam_gnome_keyring /usr/lib/pam.d/greetd
 
   # Replace only the stock Fedora kernel; fail if CachyOS is unavailable.

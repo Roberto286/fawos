@@ -91,3 +91,4 @@ modules:
         - fawos-setup.service
         - gcr-ssh-agent.socket
         - podman.socket
+        - dfiles.service
