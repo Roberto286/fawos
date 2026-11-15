@@ -1,0 +1,108 @@
+#!/usr/bin/bash
+# Pick the power profile for this machine:
+#
+#   no battery (desktop)             -> performance
+#   laptop on AC                     -> performance
+#   laptop on battery, charge >= 50% -> balanced
+#   laptop on battery, charge <  50% -> power-saver
+#
+# Runs as root from fawos-power-profile.service, both at boot and on every
+# power_supply udev event (see 70-fawos-power-profile.rules). The profile is
+# set through power-profiles-daemon so DankMaterialShell and anything else
+# reading org.freedesktop.UPower.PowerProfiles stays in sync.
+set -uo pipefail
+
+readonly sysfs="${FAWOS_SYSFS:-/sys}"
+readonly powerprofilesctl="${FAWOS_POWERPROFILESCTL:-/usr/bin/powerprofilesctl}"
+readonly power_saver_below=50
+
+log() { echo "fawos-power-profile: $*" >&2; }
+
+levels=()
+on_ac=false
+
+for supply in "$sysfs"/class/power_supply/*; do
+    [ -r "$supply/type" ] || continue
+    type=$(<"$supply/type") || continue
+
+    case "$type" in
+        Battery)
+            [ -r "$supply/capacity" ] && levels+=("$(<"$supply/capacity")")
+            ;;
+        Mains | USB | USB_C | USB_PD)
+            if [ -r "$supply/online" ] && [ "$(<"$supply/online")" = 1 ]; then
+                on_ac=true
+            fi
+            ;;
+    esac
+done
+
+if [ "${#levels[@]}" -eq 0 ]; then
+    target=performance
+elif [ "$on_ac" = true ]; then
+    target=performance
+else
+    total=0
+    for level in "${levels[@]}"; do
+        total=$((total + level))
+    done
+    level=$((total / ${#levels[@]}))
+
+    if [ "$level" -lt "$power_saver_below" ]; then
+        target=power-saver
+    else
+        target=balanced
+    fi
+fi
+
+if [ ! -x "$powerprofilesctl" ]; then
+    log "$powerprofilesctl not found, nothing to do"
+    exit 0
+fi
+
+if [ "$("$powerprofilesctl" get 2>/dev/null)" = "$target" ]; then
+    exit 0
+fi
+
+if "$powerprofilesctl" set "$target" 2>/dev/null; then
+    log "profile set to $target"
+    exit 0
+fi
+
+# power-profiles-daemon aborts the whole profile when one write fails, and on
+# amd-pstate + Ryzen 5000 it fails writing a per-policy "boost" file (EINVAL)
+# even though the profile itself is fine. Apply the profile straight to
+# cpufreq, ignoring per-policy failures: the daemon may lag behind, the CPU
+# still runs what was asked for.
+case "$target" in
+    performance) governor=performance; epp=performance; boost=1; min=amd_pstate_lowest_nonlinear_freq ;;
+    balanced) governor=powersave; epp=balance_performance; boost=1; min=amd_pstate_lowest_nonlinear_freq ;;
+    power-saver) governor=powersave; epp=power; boost=0; min=cpuinfo_min_freq ;;
+esac
+
+log "power-profiles-daemon refused '$target', writing cpufreq directly"
+
+failures=0
+write_attr() {
+    # Redirections are done inside the group so a rejected write (EINVAL on
+    # that one policy, EACCES on a read-only attribute) does not print.
+    { printf '%s' "$2" >"$1"; } 2>/dev/null || failures=$((failures + 1))
+}
+
+for policy in "$sysfs"/devices/system/cpu/cpufreq/policy*; do
+    [ -d "$policy" ] || continue
+
+    write_attr "$policy/scaling_governor" "$governor"
+    write_attr "$policy/energy_performance_preference" "$epp"
+
+    if [ -e "$policy/boost" ]; then
+        write_attr "$policy/boost" "$boost"
+    fi
+
+    if [ -r "$policy/$min" ]; then
+        write_attr "$policy/scaling_min_freq" "$(<"$policy/$min")"
+    fi
+done
+
+log "cpufreq written directly, $failures attribute write(s) refused"
+exit 0

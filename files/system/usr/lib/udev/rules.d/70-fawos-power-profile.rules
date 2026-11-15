@@ -1,0 +1,4 @@
+# Re-evaluate the power profile whenever the AC adapter is plugged/unplugged or
+# a battery level changes. fawos-power-profile.service is a no-op when the
+# profile it computes is already active.
+SUBSYSTEM=="power_supply", ACTION=="change", TAG+="systemd", ENV{SYSTEMD_WANTS}+="fawos-power-profile.service"

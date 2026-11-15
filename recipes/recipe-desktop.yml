@@ -82,7 +82,7 @@ modules:
         - fawos-normalize-home.service
         - fawos-snapper-home.service
         - fawos-home-subvolumes.service
-        - fawos-desktop-performance.service
+        - fawos-power-profile.service
         - snapper-timeline.timer
         - snapper-cleanup.timer
         - fawos-btrfs-scrub.timer

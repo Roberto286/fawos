@@ -1,0 +1,18 @@
+[Unit]
+Description=Select the power profile from chassis and battery state
+Documentation=man:powerprofilesctl(1)
+# power-profiles-daemon ships with After=multi-user.target, so a unit pulled in
+# by multi-user.target that is also ordered After=power-profiles-daemon forms an
+# ordering cycle and systemd deletes its start job (that is why the old
+# fawos-desktop-performance.service never ran). Pulled in by graphical.target
+# the order stays one-directional: multi-user.target -> power-profiles-daemon
+# -> fawos-power-profile.service -> graphical.target.
+Wants=power-profiles-daemon.service
+After=power-profiles-daemon.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/fawos/power-profile
+
+[Install]
+WantedBy=graphical.target
