@@ -41,5 +41,35 @@ class RecipeSplitTests(unittest.TestCase):
         self.assertIn("system-desktop", (RECIPES / "recipe-desktop.yml").read_text())
 
 
+@unittest.skipUnless(yaml, "PyYAML not installed")
+class LocalSendTests(unittest.TestCase):
+    """LocalSend must be installed everywhere *and* reachable from a phone.
+
+    Inbound 53317 is what makes phone → PC work; PC → phone only uses outgoing
+    traffic, so dropping the ports fails one direction and looks like an app bug.
+    """
+
+    def test_installed_in_both_images(self):
+        for name in ("recipe.yml", "recipe-desktop.yml"):
+            flatpaks = [
+                p
+                for m in load(name)["modules"]
+                if m.get("type") == "default-flatpaks"
+                for c in m["configurations"]
+                for p in c.get("install", [])
+            ]
+            self.assertIn("org.localsend.localsend_app", flatpaks, name)
+
+    def test_inbound_ports_open_in_public_zone(self):
+        import xml.etree.ElementTree as ET
+
+        zone = ET.parse(ROOT / "files/system/etc/firewalld/zones/public.xml").getroot()
+        ports = {(p.get("port"), p.get("protocol")) for p in zone.iter("port")}
+        self.assertTrue({("53317", "tcp"), ("53317", "udp")} <= ports, ports)
+        # The zone file replaces the stock one, so the defaults must survive.
+        services = {s.get("name") for s in zone.iter("service")}
+        self.assertTrue({"ssh", "mdns", "dhcpv6-client"} <= services, services)
+
+
 if __name__ == "__main__":
     unittest.main()
