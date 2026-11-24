@@ -19,6 +19,16 @@ failed=()
 # EOF or Enter means no.
 ask() { local reply; read -r -p "$1 [y/N] " reply || return 1; [[ $reply == [yY]* ]]; }
 
+# True when the flatpak Thunderbird already has an account in its default profile.
+thunderbird_has_account() {
+    local prefs
+    for prefs in "$HOME"/.var/app/org.mozilla.thunderbird/.thunderbird/*/prefs.js; do
+        [[ -e $prefs ]] || continue
+        grep -q 'mail\.account\.account[0-9][0-9]*\.server' "$prefs" && return 0
+    done
+    return 1
+}
+
 printf '\n== SSH key / GitHub ==\n'
 key=$HOME/.ssh/id_ed25519
 step_ok=1
@@ -36,7 +46,8 @@ fi
 
 printf '\n== Dotfiles remote ==\n'
 if chezmoi source-path >/dev/null 2>&1; then
-    if ssh -o StrictHostKeyChecking=accept-new -T git@github.com 2>&1 | grep -q 'successfully authenticated'; then
+    # </dev/null: ssh would otherwise swallow the answers meant for the prompts below.
+    if ssh -o StrictHostKeyChecking=accept-new -T git@github.com </dev/null 2>&1 | grep -q 'successfully authenticated'; then
         if ask 'Switch dotfiles remote to SSH?'; then
             if ! chezmoi git -- remote set-url origin git@github.com:roberto286/dotfiles.git; then
                 failed+=('chezmoi remote')
@@ -47,6 +58,22 @@ if chezmoi source-path >/dev/null 2>&1; then
     fi
 else
     printf 'No chezmoi source directory; skipping.\n'
+fi
+
+printf '\n== Email accounts ==\n'
+if thunderbird_has_account; then
+    printf 'Thunderbird already has an account configured; skipping.\n'
+elif [[ -z ${WAYLAND_DISPLAY:-}${DISPLAY:-} ]]; then
+    printf 'No graphical session; skipping email setup.\n'
+elif ! flatpak info org.mozilla.thunderbird >/dev/null 2>&1; then
+    printf 'Thunderbird is not installed; install it from Bazaar, then rerun fawos-setup.\n'
+elif ask 'Set up your email accounts in Thunderbird now?'; then
+    # Detached: the wizard keeps going while Thunderbird shows its account setup.
+    if setsid -f flatpak run org.mozilla.thunderbird >/dev/null 2>&1; then
+        printf 'Thunderbird is starting; finish the account setup in its window.\n'
+    else
+        failed+=('Email accounts')
+    fi
 fi
 
 cat <<'EOF'
