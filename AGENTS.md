@@ -19,7 +19,8 @@ BlueBuild recipe repo that builds the immutable `ghcr.io/roberto286/fawos` bootc
 
 `files/system/usr/bin/fawos-update` has a strict contract the tests pin down:
 
-- No arguments allowed → exit 2; running as root (even via sudo) → exit 2.
+- Accepts only `--check` and step names (`image flatpak dotfiles dms mise`); anything else → exit 2. Running as root (even via sudo) → exit 2.
+- Image, flatpak and mise updates are held back 7 days (`MIN_AGE_DAYS`): image = newest daily `YYYYMMDD` tag ≥7 days old via `bootc switch`, flatpak = newest commit ≥7 days old via `--commit`, mise = `--minimum-release-age`. Never downgrades. `--check` only reports.
 - Failed update steps are accumulated and reported, then exit 1 — steps that don't depend on each other must keep running after one fails.
 - Shell is bash with `set -uo pipefail` and INT/TERM traps (exit 130/143).
 - Change any of these and `tests/test_fawos_update.py` breaks.
