@@ -1,10 +1,24 @@
 #!/usr/bin/bash
 set -uo pipefail
 
-if (( $# != 0 )); then
-    printf 'Usage: fawos-update\n' >&2
-    exit 2
-fi
+# Third-party updates (image, flatpaks, mise tools) are held back MIN_AGE_DAYS so a
+# compromised release is usually caught upstream before it reaches this machine.
+readonly MIN_AGE_DAYS=7
+readonly STEPS=(image flatpak dotfiles dms mise)
+
+usage() {
+    printf 'Usage: fawos-update [--check] [%s ...]\n' "${STEPS[*]}" >&2
+}
+
+mode=apply
+selected=()
+for arg in "$@"; do
+    case $arg in
+        image|flatpak|dotfiles|dms|mise) selected+=("$arg") ;;
+        --check) mode=check ;;
+        *) usage; exit 2 ;;
+    esac
+done
 
 if (( EUID == 0 )); then
     printf 'Run fawos-update as your regular user, without sudo.\n' >&2
@@ -15,6 +29,11 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 failed=()
+
+wants() { (( ${#selected[@]} == 0 )) || [[ " ${selected[*]} " == *" $1 "* ]]; }
+
+# YYYYMMDD of the newest date still old enough to install.
+cutoff() { printf '%(%Y%m%d)T' $(( EPOCHSECONDS - MIN_AGE_DAYS * 86400 )); }
 
 update() {
     local label=$1 result
@@ -29,15 +48,84 @@ update() {
     esac
 }
 
-update 'System image (including kernel and RPM packages)' sudo bootc upgrade
-update 'System Flatpaks' sudo flatpak update --system --noninteractive
-update 'User Flatpaks' flatpak update --user --noninteractive
-update 'Dotfiles' systemctl --user start --wait chezmoi-update.service
-if drift=$(chezmoi status --exclude=scripts 2>/dev/null) && [[ -n $drift ]]; then
-    printf '\nDotfiles differing from the repo (save: chezmoi re-add; discard: chezmoi apply --force <file>):\n%s\n' "$drift"
+# bootc cannot pick a release by age, so move to the newest daily tag (YYYYMMDD,
+# published by CI) that is at least MIN_AGE_DAYS old. Never downgrades.
+image_step() {
+    local status repo booted tags target
+    status=$(sudo bootc status --json) || return 1
+    repo=$(jq -er '.status.booted.image.image.image' <<<"$status") || return 1
+    booted=$(jq -er '.status.booted.image.timestamp[0:10] | gsub("-"; "")' <<<"$status") || return 1
+    repo=${repo%:*}
+    tags=$(skopeo list-tags "docker://$repo" | jq -r '.Tags[] | select(test("^[0-9]{8}$"))') || return 1
+    target=$(sort <<<"$tags" | awk -v c="$(cutoff)" '$1 <= c { t = $1 } END { print t }')
+    if [[ -z $target ]]; then
+        printf 'No image release older than %s days.\n' "$MIN_AGE_DAYS"
+    elif (( booted >= target )); then
+        printf 'Booted image (%s) is not older than release %s; nothing to do.\n' "$booted" "$target"
+    elif [[ $mode == check ]]; then
+        printf 'image: %s -> %s\n' "$booted" "$target"
+    else
+        sudo bootc switch "$repo:$target"
+    fi
+}
+
+# Newest commit of $app old enough to install, empty when the installed one is
+# already that commit or newer. Reads `flatpak remote-info --log` (newest first).
+flatpak_target() {
+    local scope=$1 origin=$2 app=$3 active=$4
+    flatpak remote-info --log "$scope" "$origin" "$app" | awk -v cutoff="$(cutoff)" -v active="$active" '
+        /^ *Commit:/ { c = $2 }
+        /^ *Date:/ {
+            d = $2; gsub("-", "", d)
+            if (t == "" && d <= cutoff) t = c
+            if (index(c, active) == 1 && (t == "" || t == c)) skip = 1
+        }
+        END { if (!skip && t != "") print t }'
+}
+
+# $1 = --system|--user. Updates each app to its newest commit that is old enough.
+# ponytail: apps only; flatpak may still pull a newer runtime, per-runtime pinning if that matters.
+flatpak_step() {
+    local scope=$1 list app active origin target rc=0 sudo=()
+    [[ $scope == --system ]] && sudo=(sudo)
+    list=$(flatpak list "$scope" --app --columns=application,active,origin) || return 1
+    while read -r app active origin; do
+        [[ -n $app ]] || continue
+        target=$(flatpak_target "$scope" "$origin" "$app" "$active") || { rc=1; continue; }
+        [[ -n $target ]] || continue
+        if [[ $mode == check ]]; then
+            printf 'flatpak%s: %s -> %s\n' "${scope/--/ }" "$app" "${target:0:12}"
+        else
+            "${sudo[@]}" flatpak update "$scope" --noninteractive --commit="$target" "$app" || rc=1
+        fi
+    done <<<"$list"
+    return "$rc"
+}
+
+mise_step() {
+    if [[ $mode == check ]]; then
+        mise upgrade --dry-run --global --minimum-release-age "${MIN_AGE_DAYS}d"
+    else
+        mise upgrade --global --yes --minimum-release-age "${MIN_AGE_DAYS}d"
+    fi
+}
+
+wants image && update 'System image (including kernel and RPM packages)' image_step
+if wants flatpak; then
+    update 'System Flatpaks' flatpak_step --system
+    update 'User Flatpaks' flatpak_step --user
 fi
-update 'DMS plugins' dms plugins restore
-update 'Global mise tools' mise upgrade --global --yes
+# Own repos (dotfiles, DMS plugin lockfile): trusted, not delayed, and not reported by --check.
+if [[ $mode == apply ]]; then
+    if wants dotfiles; then
+        update 'Dotfiles' systemctl --user start --wait chezmoi-update.service
+        if drift=$(chezmoi status --exclude=scripts 2>/dev/null) && [[ -n $drift ]]; then
+            printf '\nDotfiles differing from the repo (save: chezmoi re-add; discard: chezmoi apply --force <file>):\n%s\n' "$drift"
+        fi
+    fi
+    wants dms && update 'DMS plugins' dms plugins restore
+fi
+wants mise && update 'Global mise tools' mise_step
 
 if (( ${#failed[@]} != 0 )); then
     printf '\nUpdate steps failed:\n' >&2
@@ -46,4 +134,8 @@ if (( ${#failed[@]} != 0 )); then
     exit 1
 fi
 
-printf '\nAll update steps completed. Reboot to activate any staged system image.\n'
+if [[ $mode == check ]]; then
+    printf '\nCheck complete.\n'
+else
+    printf '\nAll update steps completed. Reboot to activate any staged system image.\n'
+fi

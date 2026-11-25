@@ -74,6 +74,7 @@ modules:
         - gnome-keyring-pam
         - gcr
         - wtype
+        - jq
 
         # Gaming: controller udev rules only; Steam itself is per-machine (dotfiles)
         - steam-devices
