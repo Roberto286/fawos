@@ -1,0 +1,2 @@
+[Context]
+filesystems=!~/.var/app/com.google.Chrome/config/google-chrome/NativeMessagingHosts;!xdg-config/BraveSoftware/Brave-Origin/NativeMessagingHosts;!xdg-config/BraveSoftware/Brave-Browser/NativeMessagingHosts;!xdg-config/vivaldi/NativeMessagingHosts;!xdg-config/chromium/NativeMessagingHosts;!~/.var/app/com.microsoft.Edge/config/microsoft-edge/NativeMessagingHosts;!xdg-config/google-chrome/NativeMessagingHosts;!xdg-config/microsoft-edge/NativeMessagingHosts;!~/.mozilla;

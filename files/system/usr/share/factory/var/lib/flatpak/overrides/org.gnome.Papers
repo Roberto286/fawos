@@ -1,0 +1,2 @@
+[Context]
+filesystems=!home;!/media;!/run/media;xdg-documents:ro;xdg-download:ro;

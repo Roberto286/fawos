@@ -1,0 +1,8 @@
+[Context]
+devices=!all;dri;
+features=!devel;
+sockets=!pcsc;
+filesystems=!/run/.heim_org.h5l.kcm-socket;!~/.gnupg;!xdg-run/gnupg;!xdg-run/speech-dispatcher;
+
+[Session Bus Policy]
+org.kde.StatusNotifierWatcher=talk
