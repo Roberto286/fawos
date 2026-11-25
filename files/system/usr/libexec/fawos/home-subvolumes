@@ -15,7 +15,7 @@ readonly excluded_paths=(
     .local/share/mise
     .local/share/containers
     .var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps
-    .var/app/eu.betterbird.Betterbird/.thunderbird
+    .var/app/org.mozilla.thunderbird/.thunderbird
 )
 
 if [ "$(stat -f -c %T "$home_root")" != btrfs ]; then
