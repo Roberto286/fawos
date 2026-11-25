@@ -28,7 +28,7 @@ modules:
           - org.gnome.Papers
           - org.gnome.Showtime
           - org.localsend.localsend_app
-          - org.mozilla.thunderbird
+          - eu.betterbird.Betterbird
 
   - type: signing
 

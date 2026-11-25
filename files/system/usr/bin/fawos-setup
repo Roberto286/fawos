@@ -19,10 +19,10 @@ failed=()
 # EOF or Enter means no.
 ask() { local reply; read -r -p "$1 [y/N] " reply || return 1; [[ $reply == [yY]* ]]; }
 
-# True when the flatpak Thunderbird already has an account in its default profile.
-thunderbird_has_account() {
+# True when the flatpak Betterbird already has an account in its default profile.
+betterbird_has_account() {
     local prefs
-    for prefs in "$HOME"/.var/app/org.mozilla.thunderbird/.thunderbird/*/prefs.js; do
+    for prefs in "$HOME"/.var/app/eu.betterbird.Betterbird/.thunderbird/*/prefs.js; do
         [[ -e $prefs ]] || continue
         grep -q 'mail\.account\.account[0-9][0-9]*\.server' "$prefs" && return 0
     done
@@ -73,16 +73,16 @@ elif ask 'Make fish your default shell?'; then
 fi
 
 printf '\n== Email accounts ==\n'
-if thunderbird_has_account; then
-    printf 'Thunderbird already has an account configured; skipping.\n'
+if betterbird_has_account; then
+    printf 'Betterbird already has an account configured; skipping.\n'
 elif [[ -z ${WAYLAND_DISPLAY:-}${DISPLAY:-} ]]; then
     printf 'No graphical session; skipping email setup.\n'
-elif ! flatpak info org.mozilla.thunderbird >/dev/null 2>&1; then
-    printf 'Thunderbird is not installed; install it from Bazaar, then rerun fawos-setup.\n'
-elif ask 'Set up your email accounts in Thunderbird now?'; then
-    # Detached: the wizard keeps going while Thunderbird shows its account setup.
-    if setsid -f flatpak run org.mozilla.thunderbird >/dev/null 2>&1; then
-        printf 'Thunderbird is starting; finish the account setup in its window.\n'
+elif ! flatpak info eu.betterbird.Betterbird >/dev/null 2>&1; then
+    printf 'Betterbird is not installed; install it from Bazaar, then rerun fawos-setup.\n'
+elif ask 'Set up your email accounts in Betterbird now?'; then
+    # Detached: the wizard keeps going while Betterbird shows its account setup.
+    if setsid -f flatpak run eu.betterbird.Betterbird >/dev/null 2>&1; then
+        printf 'Betterbird is starting; finish the account setup in its window.\n'
     else
         failed+=('Email accounts')
     fi
