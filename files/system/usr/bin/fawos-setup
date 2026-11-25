@@ -60,6 +60,18 @@ else
     printf 'No chezmoi source directory; skipping.\n'
 fi
 
+printf '\n== Default shell ==\n'
+fish=/usr/bin/fish
+current=$(getent passwd "$USER" | cut -d: -f7)
+if [[ $current == "$fish" ]]; then
+    printf 'fish is already your default shell; skipping.\n'
+elif [[ ! -x $fish ]]; then
+    printf 'fish is not installed; skipping.\n'
+elif ask 'Make fish your default shell?'; then
+    # chsh asks for your password. The change applies from the next login.
+    chsh -s "$fish" || failed+=('Default shell')
+fi
+
 printf '\n== Email accounts ==\n'
 if thunderbird_has_account; then
     printf 'Thunderbird already has an account configured; skipping.\n'
