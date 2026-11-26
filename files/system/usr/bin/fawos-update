@@ -42,6 +42,7 @@ state=$(mktemp -d -t fawos-update.XXXXXX) || exit 1
 trap 'kill $(jobs -p) 2>/dev/null; rm -rf "$state"' EXIT
 
 failed=()
+dotfiles_failed=0
 job_count=0
 declare -A job_label=() job_log=()
 
@@ -316,7 +317,10 @@ apply_all() {
     # Own repos: trusted and not delayed. Dotfiles go first: the mise config and the
     # DMS plugin lockfile come from them.
     if wants dotfiles; then
-        update 'Dotfiles [apply]' systemctl --user start --wait chezmoi-update.service
+        # Not transactional: a file that differs from the repo (chezmoi cannot prompt here) must
+        # not undo a good image update. Reported at the end instead.
+        printf '\n== Dotfiles [apply] ==\n'
+        systemctl --user start --wait chezmoi-update.service || dotfiles_failed=1
         if drift=$(chezmoi status --exclude=scripts 2>/dev/null) && [[ -n $drift ]]; then
             printf '\nDotfiles differing from the repo (save: chezmoi re-add; discard: chezmoi apply --force <file>):\n%s\n' "$drift"
         fi
@@ -393,6 +397,10 @@ if wants flatpak; then
 fi
 if (( ${#failed[@]} )); then
     report 'Updates applied, but cleanup failed:'
+    exit 1
+fi
+if (( dotfiles_failed )); then
+    printf '\nUpdates applied, but dotfiles did not: chezmoi found files changed both locally and in the repo.\nSee them with: chezmoi status; keep yours: chezmoi re-add <file>; take the repo version: chezmoi apply --force <file>\n' >&2
     exit 1
 fi
 printf '\nAll updates applied. Reboot to activate a staged system image.\n'
