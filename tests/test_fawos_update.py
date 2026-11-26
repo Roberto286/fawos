@@ -170,6 +170,23 @@ class ImageDelayTests(unittest.TestCase):
         self.assertEqual(line, f"image: 19700101 -> {d8}")
         self.assertNotIn(d7, line)
 
+    def test_force_takes_the_newest_release(self):
+        today = time.strftime("%Y%m%d", time.gmtime())
+        fakes = {
+            "rpm-ostree": '#!/usr/bin/bash\necho \'{"deployments":[{"booted":true,'
+            '"container-image-reference":"ostree-image-signed:docker://ghcr.io/x/fawos:latest","timestamp":0}]}\'\n',
+            "skopeo": f'#!/usr/bin/bash\necho \'{{"Tags":["{today}","latest"]}}\'\n',
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            install_fakes(tmp, fakes)
+            env = {"PATH": f"{tmp}:/usr/bin"}
+            held = subprocess.run([str(SCRIPT), "--check", "image"], env=env, capture_output=True, text=True, timeout=20)
+            forced = subprocess.run([str(SCRIPT), "--check", "--force", "image"], env=env, capture_output=True, text=True, timeout=20)
+        self.assertEqual(held.returncode, 0)
+        self.assertEqual(forced.returncode, 100, forced.stderr)
+        self.assertIn(f"image: 19700101 -> {today}", forced.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()
