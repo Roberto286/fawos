@@ -49,6 +49,14 @@ modules:
         - cups-pk-helper
         - adw-gtk3-theme
         - wl-clipboard
+        # Quick Capture plugin (screen recording, OCR, QR, exports)
+        - wf-recorder
+        - ffmpeg-free
+        - ImageMagick
+        - python3-img2pdf
+        - tesseract
+        - tesseract-langpack-ita
+        - zbar
         - brightnessctl
         - greetd
         # LibrePods runtime (built below) and the DMS airpods/airdrop plugins
@@ -57,6 +65,14 @@ modules:
         - iproute
         - kio-extras
         - breeze-icon-theme
+        # Omdrop (AirDrop) receiver/sender runtime
+        - python3-libarchive-c
+        - python3-pillow
+        - python3-zeroconf
+        - python3-ifaddr
+        - python3-dbus
+        - python3-gobject
+        - keyutils
         - fastfetch
 
         # Terminal & DevTools
@@ -80,6 +96,7 @@ modules:
         - gnome-keyring-pam
         - gcr
         - wtype
+        - argon2
         - jq
 
         # Gaming: controller udev rules only; Steam itself is per-machine (dotfiles)
@@ -152,3 +169,22 @@ modules:
         cd /
         rm -rf /tmp/librepods /root/.cargo
         dnf remove -y rust cargo gcc pkgconf-pkg-config dbus-devel pulseaudio-libs-devel bluez-libs-devel
+
+  # AirDrop for the DMS AirDrop plugin, which only accepts omdrop 0.14.1. Owly (omdrop-owl)
+  # is the radio backend; whether it works depends on the Wi-Fi card (`owly doctor`).
+  - type: script
+    snippets:
+      - |
+        set -euo pipefail
+        rpm=owly-0.4.3-1.x86_64.rpm
+        curl -fsSL -o "/tmp/$rpm" "https://github.com/t4t5/owly/releases/download/v0.4.3/$rpm"
+        echo "592f0c525c4f914212fe6589fc75e9f344fdafa8425daae88114359aeb9600e1  /tmp/$rpm" | sha256sum -c -
+        dnf install -y "/tmp/$rpm"
+        rm -f "/tmp/$rpm"
+        git clone -q https://github.com/netmojo-systems/omdrop-plugin.git /tmp/omdrop
+        git -C /tmp/omdrop checkout -q v0.14.1
+        install -d /usr/share/omdrop
+        cp -r /tmp/omdrop/bin /tmp/omdrop/share /tmp/omdrop/manifest.json /usr/share/omdrop/
+        ln -s /usr/share/omdrop/bin/omdrop /usr/bin/omdrop
+        rm -rf /tmp/omdrop
+        omdrop version | grep -qx 'omdrop 0.14.1'

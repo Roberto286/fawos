@@ -12,15 +12,17 @@ readonly STEPS=(image flatpak distrobox dotfiles dms mise)
 readonly PENDING=100
 
 usage() {
-    printf 'Usage: fawos-update [--check] [%s ...]\n' "${STEPS[*]}" >&2
+    printf 'Usage: fawos-update [--check] [--force] [%s ...]\n' "${STEPS[*]}" >&2
 }
 
 mode=apply
+hold=$MIN_AGE_DAYS   # --force sets 0: take the newest release
 selected=()
 for arg in "$@"; do
     case $arg in
         image|flatpak|distrobox|dotfiles|dms|mise) selected+=("$arg") ;;
         --check) mode=check ;;
+        --force) hold=0 ;;
         *) usage; exit 2 ;;
     esac
 done
@@ -34,7 +36,7 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 # UTC YYYYMMDDHHMMSS of the newest moment a release may have been published.
-CUTOFF=$(date -u -d "@$(( EPOCHSECONDS - MIN_AGE_DAYS * 86400 ))" +%Y%m%d%H%M%S) || exit 1
+CUTOFF=$(date -u -d "@$(( EPOCHSECONDS - hold * 86400 ))" +%Y%m%d%H%M%S) || exit 1
 export CUTOFF
 state=$(mktemp -d -t fawos-update.XXXXXX) || exit 1
 trap 'kill $(jobs -p) 2>/dev/null; rm -rf "$state"' EXIT
@@ -107,9 +109,11 @@ image_step() {
     repo=${repo#docker://}
     repo=${repo%:*}
     tags=$(skopeo list-tags "docker://$repo" | jq -r '.Tags[] | select(test("^[0-9]{8}$"))') || return 1
-    target=$(sort <<<"$tags" | awk -v c="${CUTOFF:0:8}" '$1 < c { t = $1 } END { print t }')
+    local before=${CUTOFF:0:8}
+    (( hold )) || before=$(date -u -d "$before +1 day" +%Y%m%d)
+    target=$(sort <<<"$tags" | awk -v c="$before" '$1 < c { t = $1 } END { print t }')
     if [[ -z $target ]]; then
-        printf 'No image release older than %s days.\n' "$MIN_AGE_DAYS"
+        printf 'No image release older than %s days.\n' "$hold"
     elif (( booted >= target )); then
         printf 'Booted image (%s) is not older than release %s; nothing to do.\n' "$booted" "$target"
     elif [[ $1 == check ]]; then
@@ -208,7 +212,7 @@ flatpak_step() {
 # Includes point at one Arch Linux Archive day. $1 = check|prepare|apply.
 arch_pacman() {
     podman exec -u root "$2" sh -c '
-        sed "s|^Include *= */etc/pacman.d/mirrorlist\$|Server = $2|" /etc/pacman.conf >/etc/fawos-pacman.conf || exit 1
+        if [ -n "$2" ]; then sed "s|^Include *= */etc/pacman.d/mirrorlist\$|Server = $2|" /etc/pacman.conf; else cat /etc/pacman.conf; fi >/etc/fawos-pacman.conf || exit 1
         conf="--config /etc/fawos-pacman.conf"
         case $1 in
             check)
@@ -232,7 +236,8 @@ arch_pacman() {
 distrobox_step() {
     local action=$1 day server list name image status out line rc=0
     day=$(date -u -d "${CUTOFF:0:8} -1 day" +%Y/%m/%d) || return 1
-    server="https://archive.archlinux.org/repos/$day/\$repo/os/\$arch"
+    server=
+    (( hold )) && server="https://archive.archlinux.org/repos/$day/\$repo/os/\$arch"
     list=$(podman ps -a --filter label=manager=distrobox --format '{{.Names}} {{.Image}} {{.State}}') || return 1
     while read -r name image status; do
         [[ -n $name ]] || continue
@@ -264,7 +269,7 @@ distrobox_step() {
 # for upgrade.prune_after (24h). $1 = check|prepare|apply|rollback.
 mise_step() {
     local name current latest rc=0
-    export MISE_MINIMUM_RELEASE_AGE="${MIN_AGE_DAYS}d"
+    export MISE_MINIMUM_RELEASE_AGE="${hold}d"
     case $1 in
         check|prepare)
             mise outdated --global --json >"$state/mise.json" || return 1
@@ -276,7 +281,7 @@ mise_step() {
                 fi
             done < <(jq -r 'to_entries[] | "\(.key) \(.value.current) \(.value.latest)"' "$state/mise.json")
             ;;
-        apply) mise upgrade --global --yes --minimum-release-age "${MIN_AGE_DAYS}d" || rc=1 ;;
+        apply) mise upgrade --global --yes --minimum-release-age "${hold}d" || rc=1 ;;
         rollback)
             while read -r name latest; do
                 mise where "$name@$latest" >/dev/null 2>&1 || continue
@@ -331,7 +336,7 @@ if [[ $mode == check ]]; then
         exit 1
     fi
     if [[ -s $state/pending ]]; then
-        printf '\nUpdates available (released at least %s days ago). Run fawos-update to apply them.\n' "$MIN_AGE_DAYS"
+        printf '\nUpdates available (released at least %s days ago). Run fawos-update to apply them.\n' "$hold"
         exit "$PENDING"
     fi
     printf '\nEverything is up to date.\n'
