@@ -1,0 +1,11 @@
+#!/usr/bin/bash
+# Login check: notify when releases at least 7 days old are pending; a click runs fawos-update.
+# Arch distroboxes are left out so logging in never starts containers.
+set -uo pipefail
+
+/usr/bin/fawos-update --check image flatpak mise >/dev/null 2>&1
+(( $? == 100 )) || exit 0
+action=$(notify-send --app-name=fawos --expire-time=0 --action=default=Update \
+    'Updates available' 'Releases at least 7 days old are ready. Click to run fawos-update.')
+[[ $action == default ]] || exit 0
+exec /usr/bin/ghostty -e bash -c '/usr/bin/fawos-update; read -rsn1 -p "Press any key to close."'

@@ -43,9 +43,16 @@ modules:
         - snapper-timeline.timer
         - snapper-cleanup.timer
         - fawos-btrfs-scrub.timer
+      # Stock auto-updaters ignore the 7-day hold; fawos-update-notify.service replaces them.
+      disabled:
+        - bootc-fetch-apply-updates.timer
+        - flatpak-system-updates.timer
     user:
       enabled:
         - fawos-setup.service
         - gcr-ssh-agent.socket
         - podman.socket
         - dfiles.service
+        - fawos-update-notify.service
+      disabled:
+        - flatpak-user-updates.timer

@@ -42,6 +42,22 @@ class RecipeSplitTests(unittest.TestCase):
 
 
 @unittest.skipUnless(yaml, "PyYAML not installed")
+class AutoUpdateTests(unittest.TestCase):
+    """Stock updaters bypass fawos-update's 7-day hold, so they must stay off."""
+
+    def test_stock_auto_updaters_disabled_and_notifier_enabled(self):
+        for name in ("recipe.yml", "recipe-desktop.yml"):
+            m = [m for m in load(name)["modules"] if m.get("type") == "systemd"][-1]
+            self.assertTrue(
+                {"bootc-fetch-apply-updates.timer", "flatpak-system-updates.timer"}
+                <= set(m["system"]["disabled"]),
+                name,
+            )
+            self.assertIn("flatpak-user-updates.timer", m["user"]["disabled"], name)
+            self.assertIn("fawos-update-notify.service", m["user"]["enabled"], name)
+
+
+@unittest.skipUnless(yaml, "PyYAML not installed")
 class LocalSendTests(unittest.TestCase):
     """LocalSend must be installed everywhere *and* reachable from a phone.
 

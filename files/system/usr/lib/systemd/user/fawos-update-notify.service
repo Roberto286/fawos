@@ -1,0 +1,14 @@
+[Unit]
+Description=Notify when fawos updates at least 7 days old are available
+# fawos-update needs sudo: skip non-admin users such as the desktop's gaming account.
+ConditionGroup=wheel
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=exec
+ExecStartPre=/usr/bin/nm-online -q -t 300
+ExecStart=/usr/libexec/fawos/update-notify
+
+[Install]
+WantedBy=graphical-session.target

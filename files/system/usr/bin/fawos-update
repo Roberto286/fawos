@@ -1,10 +1,15 @@
 #!/usr/bin/bash
 set -uo pipefail
 
-# Third-party updates (image, flatpaks, mise tools) are held back MIN_AGE_DAYS so a
-# compromised release is usually caught upstream before it reaches this machine.
+# Third-party updates (image, Flatpaks, Arch distroboxes, mise tools) only move to
+# releases published at least MIN_AGE_DAYS ago, so a compromised release is usually
+# caught upstream first. Apply mode is a transaction: everything is downloaded first,
+# applied only if every download succeeded, and the image, Flatpaks and mise tools are
+# rolled back if any apply step fails.
 readonly MIN_AGE_DAYS=7
-readonly STEPS=(image flatpak dotfiles dms mise)
+readonly STEPS=(image flatpak distrobox dotfiles dms mise)
+# --check exit status when updates are pending (the `dnf check-update` convention).
+readonly PENDING=100
 
 usage() {
     printf 'Usage: fawos-update [--check] [%s ...]\n' "${STEPS[*]}" >&2
@@ -14,7 +19,7 @@ mode=apply
 selected=()
 for arg in "$@"; do
     case $arg in
-        image|flatpak|dotfiles|dms|mise) selected+=("$arg") ;;
+        image|flatpak|distrobox|dotfiles|dms|mise) selected+=("$arg") ;;
         --check) mode=check ;;
         *) usage; exit 2 ;;
     esac
@@ -28,31 +33,73 @@ fi
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
+# UTC YYYYMMDDHHMMSS of the newest moment a release may have been published.
+CUTOFF=$(date -u -d "@$(( EPOCHSECONDS - MIN_AGE_DAYS * 86400 ))" +%Y%m%d%H%M%S) || exit 1
+export CUTOFF
+state=$(mktemp -d -t fawos-update.XXXXXX) || exit 1
+trap 'kill $(jobs -p) 2>/dev/null; rm -rf "$state"' EXIT
+
 failed=()
+job_count=0
+declare -A job_label=() job_log=()
 
 wants() { (( ${#selected[@]} == 0 )) || [[ " ${selected[*]} " == *" $1 "* ]]; }
 
-# YYYYMMDD of the newest date still old enough to install.
-cutoff() { printf '%(%Y%m%d)T' $(( EPOCHSECONDS - MIN_AGE_DAYS * 86400 )); }
+# Print a pending update and record it for the --check exit status.
+pending() { printf '%s\n' "$*" | tee -a "$state/pending"; }
 
+# Foreground step: output goes straight to the terminal.
 update() {
     local label=$1 result
     shift
     printf '\n== %s ==\n' "$label"
     "$@"
     result=$?
-    case "$result" in
+    case $result in
         0) ;;
         130|143) exit "$result" ;;
         *) failed+=("$label") ;;
     esac
 }
 
-# bootc cannot pick a release by age, so move to the newest daily tag (YYYYMMDD,
-# published by CI) that is at least MIN_AGE_DAYS old. Never downgrades.
+# Background step: output is buffered and printed by finish_jobs when the step ends.
+start_job() {
+    local label=$1 log="$state/log.$(( ++job_count ))"
+    shift
+    "$@" >"$log" 2>&1 &
+    job_label[$!]=$label
+    job_log[$!]=$log
+}
+
+# Wait for every started job, printing each one's output as it finishes.
+finish_jobs() {
+    local pid rc
+    while (( ${#job_label[@]} )); do
+        pid=
+        wait -n -p pid "${!job_label[@]}"
+        rc=$?
+        [[ -n $pid ]] || break
+        printf '\n== %s ==\n' "${job_label[$pid]}"
+        [[ -s ${job_log[$pid]} ]] && printf '%s\n' "$(< "${job_log[$pid]}")"
+        case $rc in
+            0) ;;
+            130|143) exit "$rc" ;;
+            *) failed+=("${job_label[$pid]}") ;;
+        esac
+        unset "job_label[$pid]" "job_log[$pid]"
+    done
+}
+
+# bootc cannot pick a release by age: use the newest daily tag (YYYYMMDD, pushed by CI and
+# overwritten by later builds that day) whose whole day is before the cutoff day.
+# Never downgrades. $1 = check|prepare|apply|rollback.
 image_step() {
     local status repo booted tags target
-    # rpm-ostree status works as a regular user (bootc status needs root); only the switch needs sudo.
+    case $1 in
+        apply) [[ ! -s $state/image ]] || sudo -n bootc upgrade --from-downloaded; return ;;
+        rollback) [[ ! -s $state/image ]] || sudo -n rpm-ostree cleanup --pending; return ;;
+    esac
+    # rpm-ostree status works as a regular user (bootc status needs root).
     status=$(rpm-ostree status --json) || return 1
     repo=$(jq -er '.deployments[] | select(.booted) | ."container-image-reference"' <<<"$status") || return 1
     booted=$(jq -er '.deployments[] | select(.booted) | .timestamp | strftime("%Y%m%d")' <<<"$status") || return 1
@@ -60,85 +107,285 @@ image_step() {
     repo=${repo#docker://}
     repo=${repo%:*}
     tags=$(skopeo list-tags "docker://$repo" | jq -r '.Tags[] | select(test("^[0-9]{8}$"))') || return 1
-    target=$(sort <<<"$tags" | awk -v c="$(cutoff)" '$1 <= c { t = $1 } END { print t }')
+    target=$(sort <<<"$tags" | awk -v c="${CUTOFF:0:8}" '$1 < c { t = $1 } END { print t }')
     if [[ -z $target ]]; then
         printf 'No image release older than %s days.\n' "$MIN_AGE_DAYS"
     elif (( booted >= target )); then
         printf 'Booted image (%s) is not older than release %s; nothing to do.\n' "$booted" "$target"
-    elif [[ $mode == check ]]; then
-        printf 'image: %s -> %s\n' "$booted" "$target"
+    elif [[ $1 == check ]]; then
+        pending "image: $booted -> $target"
     else
-        sudo bootc switch "$repo:$target"
+        printf 'image: %s -> %s\n' "$booted" "$target"
+        sudo -n bootc switch --download-only "$repo:$target" && printf '%s\n' "$target" >"$state/image"
     fi
 }
 
-# Newest commit of $app old enough to install, empty when the installed one is
-# already that commit or newer. Reads `flatpak remote-info --log` (newest first).
+# Newest commit of $ref published before CUTOFF; empty when $active is already that commit
+# or newer. $active "-" (a fresh install) always gets the aged commit.
+# Reads `flatpak remote-info --log` (newest first, dates in UTC).
 flatpak_target() {
-    local scope=$1 origin=$2 app=$3 active=$4
-    flatpak remote-info --log "$scope" "$origin" "$app" | awk -v cutoff="$(cutoff)" -v active="$active" '
+    local scope=$1 origin=$2 ref=$3 active=$4
+    flatpak remote-info --log "$scope" "$origin" "$ref" | awk -v cutoff="$CUTOFF" -v active="$active" '
         /^ *Commit:/ { c = $2 }
         /^ *Date:/ {
-            d = $2; gsub("-", "", d)
+            d = $2 $3; gsub(/[-:]/, "", d)
             if (t == "" && d <= cutoff) t = c
             if (index(c, active) == 1 && (t == "" || t == c)) skip = 1
         }
         END { if (!skip && t != "") print t }'
 }
 
-# $1 = --system|--user. Updates each app to its newest commit that is old enough.
-# ponytail: apps only; flatpak may still pull a newer runtime, per-runtime pinning if that matters.
+# One installed ref -> "update REF OLD TARGET ORIGIN", plus "install RUNTIME - - ORIGIN" when
+# the target app commit needs a runtime that is not installed. Nothing when up to date.
+flatpak_plan_ref() {
+    local scope=$1 ref=$2 active=$3 origin=$4 target old runtime
+    target=$(flatpak_target "$scope" "$origin" "$ref" "$active") || return 1
+    [[ -n $target ]] || return 0
+    old=$(flatpak info "$scope" --show-commit "$ref") || return 1
+    printf 'update %s %s %s %s\n' "$ref" "$old" "$target" "$origin"
+    [[ $ref == app/* ]] || return 0
+    runtime=$(flatpak remote-info "$scope" --commit="$target" "$origin" "$ref" | awk '/^ *Runtime:/ { print $2 }') || return 1
+    [[ -z $runtime ]] || flatpak info "$scope" "runtime/$runtime" >/dev/null 2>&1 ||
+        printf 'install runtime/%s - - %s\n' "$runtime" "$origin"
+}
+export -f flatpak_target flatpak_plan_ref
+
+# $1 = check|prepare|apply|rollback|cleanup, $2 = --system|--user. Every installed ref (apps,
+# runtimes, extensions, locales) moves on its own to its newest aged commit: --no-deps and
+# --no-related keep flatpak from dragging a runtime to its newest commit along with an app.
 flatpak_step() {
-    local scope=$1 list app active origin target rc=0 sudo=()
-    [[ $scope == --system ]] && sudo=(sudo)
-    list=$(flatpak list "$scope" --app --columns=application,active,origin) || return 1
-    while read -r app active origin; do
-        [[ -n $app ]] || continue
-        target=$(flatpak_target "$scope" "$origin" "$app" "$active") || { rc=1; continue; }
-        [[ -n $target ]] || continue
-        if [[ $mode == check ]]; then
-            printf 'flatpak%s: %s -> %s\n' "${scope/--/ }" "$app" "${target:0:12}"
-        else
-            "${sudo[@]}" flatpak update "$scope" --noninteractive --commit="$target" "$app" || rc=1
+    local action=$1 scope=$2 plan="$state/flatpak$2" apps runtimes kind ref old target origin t rc=0 sudo=()
+    local opts=(--noninteractive --no-deps --no-related)
+    [[ $scope == --system ]] && sudo=(sudo -n)
+    case $action in
+        check|prepare)
+            apps=$(flatpak list "$scope" --app --all --columns=ref,active,origin) || return 1
+            runtimes=$(flatpak list "$scope" --runtime --all --columns=ref,active,origin) || return 1
+            { awk 'NF { print "app/" $0 }' <<<"$apps"; awk 'NF { print "runtime/" $0 }' <<<"$runtimes"; } |
+                xargs -r -P 8 -n 3 bash -c 'flatpak_plan_ref "$0" "$@"' "$scope" | sort -u >"$plan" || return 1
+            while read -r -u 3 kind ref old target origin; do
+                if [[ $action == check ]]; then
+                    if [[ $kind == install ]]; then
+                        pending "flatpak${scope/--/ }: install $ref"
+                    else
+                        pending "flatpak${scope/--/ }: $ref ${old:0:12} -> ${target:0:12}"
+                    fi
+                elif [[ $kind == update ]]; then
+                    printf 'flatpak%s: %s %s -> %s\n' "${scope/--/ }" "$ref" "${old:0:12}" "${target:0:12}"
+                    "${sudo[@]}" flatpak update "$scope" "${opts[@]}" --no-deploy --commit="$target" "$ref" || rc=1
+                fi
+            done 3<"$plan"
+            ;;
+        apply)
+            while read -r -u 3 kind ref old target origin; do
+                if [[ $kind == install ]]; then
+                    "${sudo[@]}" flatpak install "$scope" --noninteractive "$origin" "$ref" || { rc=1; continue; }
+                    # ponytail: only the runtime is pinned; extensions installed with it stay at newest.
+                    t=$(flatpak_target "$scope" "$origin" "$ref" -) || { rc=1; continue; }
+                    [[ -z $t ]] || "${sudo[@]}" flatpak update "$scope" "${opts[@]}" --commit="$t" "$ref" || rc=1
+                else
+                    "${sudo[@]}" flatpak update "$scope" "${opts[@]}" --no-pull --commit="$target" "$ref" || rc=1
+                fi
+            done 3<"$plan"
+            ;;
+        rollback)
+            # Reverse order: refs go back to their old commits before fresh runtimes are removed.
+            while read -r -u 3 kind ref old target origin; do
+                if [[ $kind == install ]]; then
+                    flatpak info "$scope" "$ref" >/dev/null 2>&1 || continue
+                    "${sudo[@]}" flatpak uninstall "$scope" --noninteractive "$ref" || rc=1
+                else
+                    "${sudo[@]}" flatpak update "$scope" "${opts[@]}" --commit="$old" "$ref" || rc=1
+                fi
+            done 3< <(sort -r "$plan")
+            ;;
+        cleanup) "${sudo[@]}" flatpak uninstall "$scope" --unused --noninteractive || rc=1 ;;
+    esac
+    return "$rc"
+}
+
+# Runs pacman as root in an Arch container with a copy of pacman.conf whose mirrorlist
+# Includes point at one Arch Linux Archive day. $1 = check|prepare|apply.
+arch_pacman() {
+    podman exec -u root "$2" sh -c '
+        sed "s|^Include *= */etc/pacman.d/mirrorlist\$|Server = $2|" /etc/pacman.conf >/etc/fawos-pacman.conf || exit 1
+        conf="--config /etc/fawos-pacman.conf"
+        case $1 in
+            check)
+                db=$(mktemp -d) || exit 1
+                chmod 755 "$db"
+                ln -s /var/lib/pacman/local "$db/local"
+                pacman $conf --dbpath "$db" --logfile /dev/null -Sy >/dev/null || { rm -rf "$db"; exit 1; }
+                pacman $conf --dbpath "$db" -Qu
+                rc=$?
+                rm -rf "$db"
+                [ "$rc" -eq 1 ] && rc=0
+                exit "$rc" ;;
+            prepare) exec pacman $conf --noconfirm -Syyuw ;;
+            apply) exec pacman $conf --noconfirm -Su ;;
+        esac' sh "$1" "$3"
+}
+
+# Arch distroboxes: repo packages from the archive snapshot of the day before the cutoff day,
+# so every package is MIN_AGE_DAYS old. Never downgrades (-u, not -uu); foreign (AUR)
+# packages are untouched; other distros are skipped. Not rolled back (pacman cannot).
+distrobox_step() {
+    local action=$1 day server list name image status out line rc=0
+    day=$(date -u -d "${CUTOFF:0:8} -1 day" +%Y/%m/%d) || return 1
+    server="https://archive.archlinux.org/repos/$day/\$repo/os/\$arch"
+    list=$(podman ps -a --filter label=manager=distrobox --format '{{.Names}} {{.Image}} {{.State}}') || return 1
+    while read -r name image status; do
+        [[ -n $name ]] || continue
+        if [[ $image != *archlinux* ]]; then
+            printf 'distrobox %s: skipped, only Arch containers are held back\n' "$name"
+            continue
         fi
+        if [[ $status != running ]]; then
+            distrobox enter -T -n "$name" -- true </dev/null || { rc=1; continue; }
+        fi
+        if [[ $action == check ]]; then
+            if out=$(arch_pacman check "$name" "$server"); then
+                while read -r line; do
+                    [[ -z $line ]] || pending "distrobox $name: $line"
+                done <<<"$out"
+            else
+                rc=1
+            fi
+        else
+            arch_pacman "$action" "$name" "$server" </dev/null || rc=1
+        fi
+        [[ $status == running ]] || podman stop "$name" >/dev/null || rc=1
     done <<<"$list"
     return "$rc"
 }
 
+# mise filters by release date itself. The list frozen in check/prepare drives the rollback:
+# removing the new versions makes each request resolve to the old one, which mise keeps
+# for upgrade.prune_after (24h). $1 = check|prepare|apply|rollback.
 mise_step() {
-    if [[ $mode == check ]]; then
-        mise upgrade --dry-run --global --minimum-release-age "${MIN_AGE_DAYS}d"
-    else
-        mise upgrade --global --yes --minimum-release-age "${MIN_AGE_DAYS}d"
-    fi
+    local name current latest rc=0
+    export MISE_MINIMUM_RELEASE_AGE="${MIN_AGE_DAYS}d"
+    case $1 in
+        check|prepare)
+            mise outdated --global --json >"$state/mise.json" || return 1
+            while read -r name current latest; do
+                if [[ $1 == check ]]; then
+                    pending "mise: $name $current -> $latest"
+                else
+                    printf 'mise: %s %s -> %s\n' "$name" "$current" "$latest"
+                fi
+            done < <(jq -r 'to_entries[] | "\(.key) \(.value.current) \(.value.latest)"' "$state/mise.json")
+            ;;
+        apply) mise upgrade --global --yes --minimum-release-age "${MIN_AGE_DAYS}d" || rc=1 ;;
+        rollback)
+            while read -r name latest; do
+                mise where "$name@$latest" >/dev/null 2>&1 || continue
+                mise uninstall "$name@$latest" || rc=1
+            done < <(jq -r 'to_entries[] | "\(.key) \(.value.latest)"' "$state/mise.json")
+            ;;
+    esac
+    return "$rc"
 }
 
-wants image && update 'System image (including kernel and RPM packages)' image_step
-if wants flatpak; then
-    update 'System Flatpaks' flatpak_step --system
-    update 'User Flatpaks' flatpak_step --user
-fi
-# Own repos (dotfiles, DMS plugin lockfile): trusted, not delayed, and not reported by --check.
-if [[ $mode == apply ]]; then
+# Start action $1 of every wanted transactional step in parallel and wait for all of them.
+phase() {
+    wants image && start_job "System image (including kernel and RPM packages) [$1]" image_step "$1"
+    if wants flatpak; then
+        start_job "System Flatpaks [$1]" flatpak_step "$1" --system
+        start_job "User Flatpaks [$1]" flatpak_step "$1" --user
+    fi
+    [[ $1 == rollback ]] || ! wants distrobox || start_job "Arch distroboxes [$1]" distrobox_step "$1"
+    wants mise && start_job "Global mise tools [$1]" mise_step "$1"
+    finish_jobs
+}
+
+apply_all() {
+    wants image && start_job 'System image (including kernel and RPM packages) [apply]' image_step apply
+    if wants flatpak; then
+        start_job 'System Flatpaks [apply]' flatpak_step apply --system
+        start_job 'User Flatpaks [apply]' flatpak_step apply --user
+    fi
+    wants distrobox && start_job 'Arch distroboxes [apply]' distrobox_step apply
+    # Own repos: trusted and not delayed. Dotfiles go first: the mise config and the
+    # DMS plugin lockfile come from them.
     if wants dotfiles; then
-        update 'Dotfiles' systemctl --user start --wait chezmoi-update.service
+        update 'Dotfiles [apply]' systemctl --user start --wait chezmoi-update.service
         if drift=$(chezmoi status --exclude=scripts 2>/dev/null) && [[ -n $drift ]]; then
             printf '\nDotfiles differing from the repo (save: chezmoi re-add; discard: chezmoi apply --force <file>):\n%s\n' "$drift"
         fi
     fi
-    wants dms && update 'DMS plugins' dms plugins restore
-fi
-wants mise && update 'Global mise tools' mise_step
+    wants dms && start_job 'DMS plugins [apply]' dms plugins restore
+    wants mise && start_job 'Global mise tools [apply]' mise_step apply
+    finish_jobs
+}
 
-if (( ${#failed[@]} != 0 )); then
-    printf '\nUpdate steps failed:\n' >&2
+report() {
+    printf '\n%s\n' "$1" >&2
     printf '  - %s\n' "${failed[@]}" >&2
-    printf 'Other updates may have succeeded; any staged system image still requires a reboot.\n' >&2
+}
+
+if [[ $mode == check ]]; then
+    phase check
+    if (( ${#failed[@]} )); then
+        report 'Check steps failed:'
+        exit 1
+    fi
+    if [[ -s $state/pending ]]; then
+        printf '\nUpdates available (released at least %s days ago). Run fawos-update to apply them.\n' "$MIN_AGE_DAYS"
+        exit "$PENDING"
+    fi
+    printf '\nEverything is up to date.\n'
+    exit 0
+fi
+
+if wants image || wants flatpak; then
+    sudo -v || { printf 'sudo is needed for the system image and system Flatpaks.\n' >&2; exit 1; }
+    while sleep 60; do sudo -n -v || exit; done >/dev/null 2>&1 &
+fi
+
+printf '\n### Prepare: downloading, nothing changes yet\n'
+phase prepare
+if (( ${#failed[@]} )); then
+    report 'Prepare steps failed, nothing was applied:'
     exit 1
 fi
 
-if [[ $mode == check ]]; then
-    printf '\nCheck complete.\n'
-else
-    printf '\nAll update steps completed. Reboot to activate any staged system image.\n'
+snapshot=
+if wants image || wants flatpak; then
+    if snapshot=$(sudo -n snapper -c home create --cleanup-algorithm number --print-number --description fawos-update); then
+        printf '\nSnapshot %s of /var/home taken before applying.\n' "$snapshot"
+    else
+        snapshot=
+        printf '\nWarning: no /var/home snapshot taken; continuing without it.\n' >&2
+    fi
 fi
+
+printf '\n### Apply\n'
+apply_all
+if (( ${#failed[@]} )); then
+    apply_failed=("${failed[@]}")
+    failed=()
+    printf '\n### Rollback: an apply step failed\n'
+    phase rollback
+    rollback_failed=("${failed[@]}")
+    failed=("${apply_failed[@]}")
+    report 'Apply steps failed:'
+    if (( ${#rollback_failed[@]} )); then
+        failed=("${rollback_failed[@]}")
+        report 'Rollback steps failed too, check them by hand:'
+    fi
+    printf 'System image, Flatpaks and mise tools were rolled back; dotfiles, DMS plugins and Arch distroboxes were not.\n' >&2
+    [[ -z $snapshot ]] || printf 'Their files from before the update are in snapshot %s: snapper -c home status %s..0, then snapper undochange or btrfs-assistant.\n' "$snapshot" "$snapshot" >&2
+    exit 1
+fi
+
+if wants flatpak; then
+    start_job 'System Flatpaks [cleanup]' flatpak_step cleanup --system
+    start_job 'User Flatpaks [cleanup]' flatpak_step cleanup --user
+    finish_jobs
+fi
+if (( ${#failed[@]} )); then
+    report 'Updates applied, but cleanup failed:'
+    exit 1
+fi
+printf '\nAll updates applied. Reboot to activate a staged system image.\n'
