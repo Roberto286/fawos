@@ -52,9 +52,12 @@ update() {
 # published by CI) that is at least MIN_AGE_DAYS old. Never downgrades.
 image_step() {
     local status repo booted tags target
-    status=$(sudo bootc status --json) || return 1
-    repo=$(jq -er '.status.booted.image.image.image' <<<"$status") || return 1
-    booted=$(jq -er '.status.booted.image.timestamp[0:10] | gsub("-"; "")' <<<"$status") || return 1
+    # rpm-ostree status works as a regular user (bootc status needs root); only the switch needs sudo.
+    status=$(rpm-ostree status --json) || return 1
+    repo=$(jq -er '.deployments[] | select(.booted) | ."container-image-reference"' <<<"$status") || return 1
+    booted=$(jq -er '.deployments[] | select(.booted) | .timestamp | strftime("%Y%m%d")' <<<"$status") || return 1
+    repo=${repo#*:}
+    repo=${repo#docker://}
     repo=${repo%:*}
     tags=$(skopeo list-tags "docker://$repo" | jq -r '.Tags[] | select(test("^[0-9]{8}$"))') || return 1
     target=$(sort <<<"$tags" | awk -v c="$(cutoff)" '$1 <= c { t = $1 } END { print t }')
