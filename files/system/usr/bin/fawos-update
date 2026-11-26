@@ -214,6 +214,8 @@ arch_pacman() {
     podman exec -u root "$2" sh -c '
         if [ -n "$2" ]; then sed "s|^Include *= */etc/pacman.d/mirrorlist\$|Server = $2|" /etc/pacman.conf; else cat /etc/pacman.conf; fi >/etc/fawos-pacman.conf || exit 1
         conf="--config /etc/fawos-pacman.conf"
+        # A run killed mid-transaction leaves db.lck behind; with no pacman running it is stale.
+        [ "$1" = check ] || pgrep -x pacman >/dev/null || rm -f /var/lib/pacman/db.lck
         case $1 in
             check)
                 db=$(mktemp -d) || exit 1
