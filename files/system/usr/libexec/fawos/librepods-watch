@@ -1,0 +1,32 @@
+#!/usr/bin/bash
+# Start LibrePods (minimized) while AirPods are connected, stop it when they disconnect,
+# so its tray icon only exists while they are in use. One dbus-monitor, no polling.
+set -uo pipefail
+
+is_airpods() {
+    # Apple's Bluetooth vendor id (0x004C) in the BlueZ modalias, or an AirPods name.
+    busctl --system get-property org.bluez "$1" org.bluez.Device1 Modalias 2>/dev/null | grep -qi 'v004C' ||
+        busctl --system get-property org.bluez "$1" org.bluez.Device1 Name 2>/dev/null | grep -qi airpods
+}
+
+stop() { pkill -x librepods 2>/dev/null; }
+trap 'stop' EXIT
+
+# Connected state at login (e.g. AirPods already connected).
+while read -r path; do
+    is_airpods "$path" && [[ $(busctl --system get-property org.bluez "$path" org.bluez.Device1 Connected) == "b true" ]] &&
+        { pgrep -x librepods >/dev/null || librepods --start-minimized & }
+done < <(busctl --system tree org.bluez --list 2>/dev/null | grep -E '^/org/bluez/hci[0-9]+/dev_[0-9A-F_]+$')
+
+dbus-monitor --system "type='signal',sender='org.bluez',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged',arg0='org.bluez.Device1'" |
+while read -r line; do
+    case $line in
+        *"path="*) path=${line#*path=}; path=${path%%;*} ;;
+        variant*'boolean true') [[ ${seen-} == Connected ]] && is_airpods "$path" && { pgrep -x librepods >/dev/null || librepods --start-minimized & } ;;
+        variant*'boolean false') [[ ${seen-} == Connected ]] && is_airpods "$path" && stop ;;
+    esac
+    case $line in
+        'string "Connected"') seen=Connected ;;
+        'string '*|'dict entry('*|'variant'*) [[ $line == *'"Connected"'* ]] || seen= ;;
+    esac
+done

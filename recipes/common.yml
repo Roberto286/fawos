@@ -51,6 +51,12 @@ modules:
         - wl-clipboard
         - brightnessctl
         - greetd
+        # LibrePods runtime (built below) and the DMS airpods/airdrop plugins
+        - bluez
+        - pulseaudio-libs
+        - iproute
+        - kio-extras
+        - breeze-icon-theme
         - fastfetch
 
         # Terminal & DevTools
@@ -127,3 +133,22 @@ modules:
       - setsebool -N -P domain_kernel_load_modules on
       # The RPM also writes this redundant symbol file outside the bootc kernel tree.
       - rm -f "/boot/symvers-$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}' kernel-cachyos-core).zst"
+
+  # LibrePods (AirPods features, Rust rewrite) is not packaged for Fedora: build it from a
+  # pinned commit and drop the toolchain again. fawos-librepods-watch starts it on demand.
+  - type: script
+    snippets:
+      - |
+        set -euo pipefail
+        rev=672e65ad36eebf21ff1c1a508066f9197ee56d17
+        dnf install -y --setopt=install_weak_deps=False rust cargo gcc pkgconf-pkg-config dbus-devel pulseaudio-libs-devel bluez-libs-devel
+        git clone -q https://github.com/kavishdevar/librepods.git /tmp/librepods
+        git -C /tmp/librepods checkout -q "$rev"
+        cd /tmp/librepods/linux-rust
+        cargo build --release --locked
+        install -Dm755 target/release/librepods /usr/bin/librepods
+        install -Dm644 assets/me.kavishdevar.librepods.desktop /usr/share/applications/me.kavishdevar.librepods.desktop
+        install -Dm644 assets/icon.png /usr/share/icons/hicolor/256x256/apps/me.kavishdevar.librepods.png
+        cd /
+        rm -rf /tmp/librepods /root/.cargo
+        dnf remove -y rust cargo gcc pkgconf-pkg-config dbus-devel pulseaudio-libs-devel bluez-libs-devel
