@@ -54,5 +54,6 @@ modules:
         - podman.socket
         - dfiles.service
         - fawos-update-notify.service
+        - fawos-librepods-watch.service
       disabled:
         - flatpak-user-updates.timer
