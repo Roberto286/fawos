@@ -168,7 +168,7 @@ modules:
         install -Dm644 assets/icon.png /usr/share/icons/hicolor/256x256/apps/me.kavishdevar.librepods.png
         cd /
         rm -rf /tmp/librepods /root/.cargo
-        dnf remove -y rust cargo gcc pkgconf-pkg-config dbus-devel pulseaudio-libs-devel bluez-libs-devel
+        dnf remove -y rust cargo gcc dbus-devel pulseaudio-libs-devel bluez-libs-devel
 
   # AirDrop for the DMS AirDrop plugin, which only accepts omdrop 0.14.1. Owly (omdrop-owl)
   # is the radio backend; whether it works depends on the Wi-Fi card (`owly doctor`).
