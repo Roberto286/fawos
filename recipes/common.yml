@@ -60,6 +60,7 @@ modules:
         - brightnessctl
         - greetd
         # LibrePods runtime (built below) and the DMS airpods/airdrop plugins
+        - dbus-tools
         - bluez
         - pulseaudio-libs
         - iproute
